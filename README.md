@@ -11,9 +11,7 @@
 
 [![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&size=20&pause=1000&color=00FF9C&center=true&vCenter=true&width=440&lines=One+syntax%2C+every+language.;No+boilerplate.;No+generative+AI.;Just+architecture.)](https://git.io/typing-svg)
 
-![Rust](https://img.shields.io/badge/built%20with-Rust-orange?style=flat-square&logo=rust)
-![Status](https://img.shields.io/badge/status-early%20development-yellow?style=flat-square)
-![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
 
 </div>
 
@@ -78,7 +76,7 @@ built so adding them is a data change, not a rewrite.
 
 ## Built with
 
-![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white) — chosen for safety, speed, and a single self-contained binary with
+Rust — chosen for safety, speed, and a single self-contained binary with
 zero runtime dependencies for the end user.
 
 ---
