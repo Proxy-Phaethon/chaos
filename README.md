@@ -7,9 +7,7 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 </pre>
 
-Show Image
-
-Show Image Show Image Show Image
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&size=20&pause=1000&color=00FF9C&center=true&vCenter=true&width=440&lines=One+syntax%2C+every+language.;No+boilerplate.;No+generative+AI.;Just+architecture.)](https://git.io/typing-svg)
 
 </div>
 
