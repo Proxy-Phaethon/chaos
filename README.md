@@ -52,12 +52,17 @@ project (yes, all the way to a PhD, eventually). Right now:
 
 - [x] Core CLI with four commands: `initialize`, `write`, `end`, `run`
 - [x] Interactive project scaffolding flow (`chaos initialize`)
-- [ ] File/folder generation from captured config
-- [ ] `.gitignore` auto-generation per stack
-- [ ] Dependency installation
+- [x] File/folder generation from captured config
+- [x] `.gitignore` auto-generation per stack
+- [x] Dependency installation (npm + pip, real framework scaffolding via
+      `django-admin` / `express-generator`)
 - [ ] Live chaos-syntax translation (`chaos write`)
 - [ ] Local dev server (`chaos run`)
 - [ ] Terminal-styled desktop GUI
+
+`chaos initialize` is feature-complete for both v1 project types as of the
+last build session — the remaining work is the syntax translation layer
+itself (`chaos write`), which is the real core of the project.
 
 ## Commands (v1 scope)
 
@@ -78,8 +83,8 @@ built so adding them is a data change, not a rewrite.
 
 ## Built with
 
-Rust — chosen for safety, speed, and a single self-contained binary with
-zero runtime dependencies for the end user.
+Rust, chosen for safety, speed, and a single self-contained binary with
+zero runtime dependencies for the end user. Also it just sounds cool asf.
 
 ---
 

@@ -7,11 +7,12 @@ framework, etc.) needs to follow to plug into the system correctly.
 This is a living document — update it whenever the generation system
 changes shape, not just when new features are added.
 
-**Status:** the pattern below is currently proven by one real example
-(Tailwind CSS). It's expected to hold as more features are added, but
-hasn't been stress-tested against many contributors yet — treat this as
-the intended design, and update this doc immediately if a new feature
-reveals a gap in it.
+**Status:** the file/gitignore/npm-package pattern is proven by two real
+examples now (Tailwind CSS for frontend, and — see below — the backend
+scaffolding for Django/Express, which follows a related but distinct
+pattern of its own). Static Webpage and Basic Webapp generation are both
+fully working as of the last build session. `chaos write` (the syntax
+translation layer) is still unbuilt.
 
 ---
 
@@ -98,13 +99,57 @@ it just installs whatever ended up in `plan.npm_packages`, if the user
 opted in. This means adding a new JS-dependent feature never requires
 touching the install logic itself, only the feature's own function.
 
+## A second pattern: backend scaffolding (orchestration, not file-writing)
+
+Frontend features (Tailwind, plain CSS, JS) work by **writing file content
+Chaos itself authors**, via the `BuildPlan` contract above. Backend
+features work differently: rather than authoring files, Chaos **installs
+the real framework and shells out to its own official scaffolding tool**
+(`django-admin startproject`, `npx express-generator`) — since that's the
+only way to get genuinely correct, idiomatic project structure rather
+than a hand-rolled imitation of it.
+
+This means backend generation doesn't go through `BuildPlan` at all. It's
+handled by its own function (`generate_backend`) which:
+
+1. Creates the `backend/` folder
+2. Installs the framework (into a virtual environment, for Python)
+3. Runs that framework's own CLI generator, scoped to `backend/`
+4. Returns a list of `.gitignore` entries the caller merges into the
+   project's root `.gitignore`
+
+**Important consequence:** for backend scaffolding, *installation and
+generation are the same step* — unlike frontend, where files exist
+whether or not `npm install` actually runs. If the user opts out of
+dependency installation, the backend genuinely cannot be scaffolded at
+all (no Django project can exist without Django being installed first).
+Chaos handles this by creating an empty `backend/` folder and printing a
+clear explanation, rather than silently failing or pretending to succeed.
+
+### Lesson learned: relative paths + `current_dir` don't mix reliably
+
+When chaining multiple external commands inside a freshly-created folder
+(venv creation → pip install → django-admin), using a **relative** path
+to the executable (e.g. `"test/backend/venv/bin/pip"`) alongside
+`.current_dir(...)` caused the path to be resolved incorrectly, doubling
+the folder path and failing with "No such file or directory."
+
+**Fix:** always resolve to an absolute path with `fs::canonicalize(...)`
+before building paths to executables inside a working directory you're
+also passing to `.current_dir(...)`. Any new backend integration
+following this pattern should do the same.
+
 ## Known limitations / open questions
 
-- This pattern is currently only proven for **Static Webpage** generation.
-  Basic Webapp (frontend + backend + docs folder structure) hasn't been
-  built yet, and may reveal cases this contract doesn't cleanly cover
-  (e.g. pip packages alongside npm packages, or files that need to live
-  in a specific subfolder like `backend/` rather than project root).
+- **Windows paths are unhandled.** `venv/bin/pip` and `venv/bin/django-admin`
+  are Mac/Linux paths; Windows uses `venv\Scripts\pip.exe`. Not an issue
+  for current development (Mac-only), but a real gap before Chaos could
+  run cross-platform.
 - No handling yet for two features wanting to write to the *same* file
   (e.g. two libraries both wanting to modify `package.json`). This hasn't
-  come up yet since only one feature (Tailwind) writes one currently.
+  come up yet since only one frontend feature (Tailwind) writes one
+  currently.
+- Backend scaffolding is currently proven for exactly two frameworks
+  (Django, Express). A third backend framework/language would be the
+  real test of whether `generate_backend`'s `match` structure holds up
+  as a general pattern, or needs further generalizing.
