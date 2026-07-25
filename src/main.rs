@@ -114,7 +114,6 @@ fn run_initialize() {
         install_dependencies,
     };
 
-    // Temporary — just proving we captured everything correctly
     println!("\n--- Config Summary ---");
     println!("Project type: {}", config.project_type);
     println!("Styling: {}", config.styling);
