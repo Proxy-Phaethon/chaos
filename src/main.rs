@@ -351,11 +351,14 @@ fn generate_backend(config: &ProjectConfig) -> Vec<String> {
             }
             println!("Created virtual environment");
 
-            let pip_path = format!("{}/venv/bin/pip", backend_folder);
+            let backend_folder_abs = fs::canonicalize(&backend_folder)
+                .expect("Failed to resolve backend folder path");
+
+            let pip_path = backend_folder_abs.join("venv/bin/pip");
             let status = Command::new(&pip_path)
                 .arg("install")
                 .arg("django")
-                .current_dir(&backend_folder)
+                .current_dir(&backend_folder_abs)
                 .status()
                 .expect("Failed to run pip install");
 
@@ -365,12 +368,12 @@ fn generate_backend(config: &ProjectConfig) -> Vec<String> {
             }
             println!("Installed Django");
 
-            let django_admin_path = format!("{}/venv/bin/django-admin", backend_folder);
+            let django_admin_path = backend_folder_abs.join("venv/bin/django-admin");
             let status = Command::new(&django_admin_path)
                 .arg("startproject")
                 .arg("backend")
                 .arg(".")
-                .current_dir(&backend_folder)
+                .current_dir(&backend_folder_abs)
                 .status()
                 .expect("Failed to run django-admin startproject");
 
@@ -383,7 +386,7 @@ fn generate_backend(config: &ProjectConfig) -> Vec<String> {
         Some("TypeScript") => {
             gitignore_entries.push("backend/node_modules/".to_string());
 
-            println!("\n🟦 Setting up TypeScript backend...");
+            println!("\n Setting up TypeScript backend...");
 
             let status = Command::new("npx")
                 .arg("--yes")
@@ -430,14 +433,14 @@ fn execute_plan(folder: &str, plan: &BuildPlan) {
         }
 
         fs::write(&full_path, content).expect("Failed to write file");
-        println!(" Created: {}", full_path);
+        println!("Created: {}", full_path);
     }
 
     if !plan.gitignore_entries.is_empty() {
         let gitignore_content = plan.gitignore_entries.join("\n");
         let gitignore_path = format!("{}/.gitignore", folder);
         fs::write(&gitignore_path, gitignore_content).expect("Failed to write .gitignore");
-        println!(" Created: {}", gitignore_path);
+        println!("Created: {}", gitignore_path);
     }
 }
 
@@ -446,7 +449,7 @@ fn run_npm_install(folder: &str, packages: &[String]) {
         return;
     }
 
-    println!("\n Installing dependencies...");
+    println!("\n📦 Installing dependencies...");
 
     let mut cmd = Command::new("npm");
     cmd.arg("install").arg("-D");
