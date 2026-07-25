@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use dialoguer::{Select, Confirm, Input, theme::ColorfulTheme};
 use std::fs;
+use std::process::Command;
 
 #[derive(Parser)]
 #[command(name = "chaos")]
@@ -84,7 +85,6 @@ fn run_initialize() {
     let project_name = sanitize_project_name(&raw_name);
     println!("Project folder will be named: {}", project_name);
 
-    // Step 1
     let project_types = vec!["Static Webpage", "Basic Webapp"];
     let selection = Select::with_theme(&theme)
         .with_prompt("What are you building?")
@@ -94,7 +94,6 @@ fn run_initialize() {
         .unwrap();
     let project_type = project_types[selection].to_string();
 
-    // Step 2
     let styling_options = vec!["Tailwind CSS", "Plain CSS"];
     let selection = Select::with_theme(&theme)
         .with_prompt("Choose your styling approach")
@@ -104,14 +103,12 @@ fn run_initialize() {
         .unwrap();
     let styling = styling_options[selection].to_string();
 
-    // Step 3
     let include_js = Confirm::with_theme(&theme)
         .with_prompt("Include JavaScript?")
         .default(true)
         .interact()
         .unwrap();
 
-    // Step 4 & 5 — only if Basic Webapp
     let mut backend_language: Option<String> = None;
     let mut backend_framework: Option<String> = None;
 
@@ -143,7 +140,6 @@ fn run_initialize() {
         backend_framework = Some(framework);
     }
 
-    // Step 6
     let install_dependencies = Confirm::with_theme(&theme)
         .with_prompt("Install dependencies now?")
         .default(true)
@@ -173,9 +169,17 @@ fn run_initialize() {
     if config.project_type == "Static Webpage" {
         generate_static_webpage(&config);
     } else {
-        println!("Basic Webapp generation isn't built yet — coming soon.");
+        generate_basic_webapp(&config);
     }
 }
+
+// ---------- Shared content helpers ----------
+
+fn readme_content(config: &ProjectConfig) -> String {
+    format!("# {}\n\nGenerated with Chaos.\n", config.project_name)
+}
+
+// ---------- Frontend feature contributors ----------
 
 fn add_html_boilerplate(plan: &mut BuildPlan, config: &ProjectConfig) {
     let css_link = if config.styling == "Tailwind CSS" {
@@ -234,7 +238,7 @@ fn add_javascript(plan: &mut BuildPlan) {
     ));
 }
 
-fn generate_static_webpage(config: &ProjectConfig) {
+fn generate_frontend_plan(config: &ProjectConfig) -> BuildPlan {
     let mut plan = BuildPlan::new();
 
     add_html_boilerplate(&mut plan, config);
@@ -249,12 +253,171 @@ fn generate_static_webpage(config: &ProjectConfig) {
         add_javascript(&mut plan);
     }
 
+    plan
+}
+
+// ---------- Static Webpage ----------
+
+fn generate_static_webpage(config: &ProjectConfig) {
+    let mut plan = generate_frontend_plan(config);
+    plan.files.push(("README.md".to_string(), readme_content(config)));
+
     execute_plan(&config.project_name, &plan);
 
     if config.install_dependencies && !plan.npm_packages.is_empty() {
         run_npm_install(&config.project_name, &plan.npm_packages);
     }
 }
+
+// ---------- Basic Webapp ----------
+
+fn generate_basic_webapp(config: &ProjectConfig) {
+    fs::create_dir_all(&config.project_name).expect("Failed to create project folder");
+
+    let docs_folder = format!("{}/docs", config.project_name);
+    fs::create_dir_all(&docs_folder).expect("Failed to create docs folder");
+    fs::write(format!("{}/.gitkeep", docs_folder), "").expect("Failed to create docs placeholder");
+
+    // Frontend
+    let frontend_plan = generate_frontend_plan(config);
+    let frontend_folder = format!("{}/frontend", config.project_name);
+    execute_plan(&frontend_folder, &frontend_plan);
+
+    if config.install_dependencies && !frontend_plan.npm_packages.is_empty() {
+        run_npm_install(&frontend_folder, &frontend_plan.npm_packages);
+    }
+
+    let mut root_gitignore_entries: Vec<String> = frontend_plan
+        .gitignore_entries
+        .iter()
+        .map(|entry| format!("frontend/{}", entry))
+        .collect();
+
+    // Backend
+    if config.install_dependencies {
+        let backend_entries = generate_backend(config);
+        root_gitignore_entries.extend(backend_entries);
+    } else {
+        fs::create_dir_all(format!("{}/backend", config.project_name))
+            .expect("Failed to create backend folder");
+        println!(
+            "Backend wasn't scaffolded — Django/Express both require installing \
+             the framework before their project files can be generated. Run \
+             'chaos initialize' again with dependency installation enabled to \
+             build a real backend."
+        );
+    }
+
+    // Root README + .gitignore
+    fs::write(
+        format!("{}/README.md", config.project_name),
+        readme_content(config),
+    )
+    .expect("Failed to write README");
+    println!("Created: {}/README.md", config.project_name);
+
+    if !root_gitignore_entries.is_empty() {
+        let content = root_gitignore_entries.join("\n");
+        fs::write(format!("{}/.gitignore", config.project_name), content)
+            .expect("Failed to write .gitignore");
+        println!("Created: {}/.gitignore", config.project_name);
+    }
+}
+
+fn generate_backend(config: &ProjectConfig) -> Vec<String> {
+    let backend_folder = format!("{}/backend", config.project_name);
+    fs::create_dir_all(&backend_folder).expect("Failed to create backend folder");
+
+    let mut gitignore_entries = Vec::new();
+
+    match config.backend_language.as_deref() {
+        Some("Python") => {
+            gitignore_entries.push("backend/venv/".to_string());
+            gitignore_entries.push("backend/__pycache__/".to_string());
+
+            println!("\n Setting up Python backend...");
+
+            let status = Command::new("python3")
+                .arg("-m")
+                .arg("venv")
+                .arg("venv")
+                .current_dir(&backend_folder)
+                .status()
+                .expect("Failed to create virtual environment — is python3 installed?");
+
+            if !status.success() {
+                println!("Failed to create virtual environment");
+                return gitignore_entries;
+            }
+            println!("Created virtual environment");
+
+            let pip_path = format!("{}/venv/bin/pip", backend_folder);
+            let status = Command::new(&pip_path)
+                .arg("install")
+                .arg("django")
+                .current_dir(&backend_folder)
+                .status()
+                .expect("Failed to run pip install");
+
+            if !status.success() {
+                println!("Failed to install Django");
+                return gitignore_entries;
+            }
+            println!("Installed Django");
+
+            let django_admin_path = format!("{}/venv/bin/django-admin", backend_folder);
+            let status = Command::new(&django_admin_path)
+                .arg("startproject")
+                .arg("backend")
+                .arg(".")
+                .current_dir(&backend_folder)
+                .status()
+                .expect("Failed to run django-admin startproject");
+
+            if status.success() {
+                println!("Generated Django project");
+            } else {
+                println!("django-admin startproject failed");
+            }
+        }
+        Some("TypeScript") => {
+            gitignore_entries.push("backend/node_modules/".to_string());
+
+            println!("\n🟦 Setting up TypeScript backend...");
+
+            let status = Command::new("npx")
+                .arg("--yes")
+                .arg("express-generator")
+                .arg("--no-view")
+                .current_dir(&backend_folder)
+                .status()
+                .expect("Failed to run express-generator — is npm/npx installed?");
+
+            if !status.success() {
+                println!("express-generator failed");
+                return gitignore_entries;
+            }
+            println!("Generated Express project");
+
+            let status = Command::new("npm")
+                .arg("install")
+                .current_dir(&backend_folder)
+                .status()
+                .expect("Failed to run npm install");
+
+            if status.success() {
+                println!("Installed backend dependencies");
+            } else {
+                println!("npm install failed");
+            }
+        }
+        _ => {}
+    }
+
+    gitignore_entries
+}
+
+// ---------- Shared execution ----------
 
 fn execute_plan(folder: &str, plan: &BuildPlan) {
     fs::create_dir_all(folder).expect("Failed to create project folder");
@@ -267,18 +430,16 @@ fn execute_plan(folder: &str, plan: &BuildPlan) {
         }
 
         fs::write(&full_path, content).expect("Failed to write file");
-        println!("Created: {}", full_path);
+        println!(" Created: {}", full_path);
     }
 
     if !plan.gitignore_entries.is_empty() {
         let gitignore_content = plan.gitignore_entries.join("\n");
         let gitignore_path = format!("{}/.gitignore", folder);
         fs::write(&gitignore_path, gitignore_content).expect("Failed to write .gitignore");
-        println!("Created: {}", gitignore_path);
+        println!(" Created: {}", gitignore_path);
     }
 }
-
-use std::process::Command;
 
 fn run_npm_install(folder: &str, packages: &[String]) {
     if packages.is_empty() {
@@ -296,7 +457,9 @@ fn run_npm_install(folder: &str, packages: &[String]) {
 
     cmd.current_dir(folder);
 
-    let status = cmd.status().expect("Failed to run npm install — is npm installed?");
+    let status = cmd
+        .status()
+        .expect("Failed to run npm install — is npm installed?");
 
     if status.success() {
         println!("Dependencies installed successfully");
