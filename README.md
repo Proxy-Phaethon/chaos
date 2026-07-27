@@ -91,10 +91,9 @@ Go, Composer) is actually installed before attempting to scaffold, and
 prints a clear install link if it's missing, rather than failing silently
 or crashing.
 
-The CSS additions and five of the eight backend paths (Fastify, NestJS,
-Flask, Go/Gin, Rails, Laravel) are newly built and **not yet verified by a
-real test run** — Django and Express are the two paths that have been
-fully tested end to end so far.
+All CSS options and all eight backend paths have been tested end to
+end as of the last build session, including the "dependencies declined"
+and "tool not installed" edge cases.
 
 More languages, frameworks, and project types are planned — the system is
 built so adding them is a data change, not a rewrite.
