@@ -88,11 +88,19 @@ zero runtime dependencies for the end user. Also it just sounds cool asf.
 
 ## Note
 
-This project is actually a result of my incredible laziness to memorize different syntax for all the languages we have to use in our daily lives even as a simple web developer. Forget creating video games (my dreams of making a cosy life simulator long trashed), I couldn't even be bothered to fix the website I'd created myself. This, of course, wasn't due to my inability to 'fix' any bugs - I was simply insistent on the fact that if I am doing programming, I must be able to do it like in the movies. Just open a terminal and start typing, like a genius. 
+This project is actually a result of my incredible laziness to memorize different syntax for all the languages we
+have to use in our daily lives even as a simple web developer. Forget creating video games (my dreams of making a
+cosy life simulator long trashed), I couldn't even be bothered to fix the website I'd created myself. This, of
+course, wasn't due to my inability to 'fix' any bugs - I was simply insistent on the fact that if I am doing
+programming, I must be able to do it like in the movies. Just open a terminal and start typing, like a genius. 
 
-Chaos serves that purpose, but in making it, I've certainly felt like a total loser, not knowing how most of Rust works (WHY am I borrowing things is this a fucking bank vs Real Estate guide), or figuring out what would work for a somewhat universal translation layer, and so on. 
+Chaos serves that purpose, but in making it, I've certainly felt like a total loser, not knowing how most of Rust
+works (WHY am I borrowing things is this a fucking bank vs Real Estate guide), or figuring out what would work for a
+somewhat universal translation layer, and so on. 
 
-But in the end, I hope this achieves for me the dream of becoming a disney-channel type 'hacker' - effortless programming, no need to spend hours scrolling through google or relying on generative AI for simple syntax (that my brain refuses to remember).
+But in the end, I hope this achieves for me the dream of becoming a disney-channel type 'hacker' - effortless
+programming, no need to spend hours scrolling through google or relying on generative AI for simple syntax (that my
+brain refuses to remember).
 
 ---
 
