@@ -55,7 +55,7 @@ project (yes, all the way to a PhD, eventually). Right now:
 - [x] File/folder generation from captured config
 - [x] `.gitignore` auto-generation per stack
 - [x] Dependency installation (npm + pip, real framework scaffolding via
-      `django-admin` / `express-generator`)
+      `django-admin` / `express-generator`, etc.)
 - [ ] Live chaos-syntax translation (`chaos write`)
 - [ ] Local dev server (`chaos run`)
 - [ ] Terminal-styled desktop GUI
