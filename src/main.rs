@@ -81,8 +81,22 @@ fn require_tool(command: &str, install_hint: &str) -> bool {
     let check = Command::new(command).arg("--version").output();
 
     match check {
-        Ok(output) if output.status.success() => true,
-        _ => {
+        Ok(output) => {
+            let combined_output = format!(
+                "{}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+
+            if output.status.success() && !combined_output.contains("is not currently installed") {
+                true
+            } else {
+                println!("\n '{}' isn't installed or isn't on your PATH.", command);
+                println!("   {}", install_hint);
+                false
+            }
+        }
+        Err(_) => {
             println!("\n '{}' isn't installed or isn't on your PATH.", command);
             println!("   {}", install_hint);
             false
