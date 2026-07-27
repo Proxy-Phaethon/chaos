@@ -81,8 +81,8 @@ fn require_tool(command: &str, install_hint: &str) -> bool {
     let check = Command::new(command).arg("--version").output();
 
     match check {
-        Ok(_) => true,
-        Err(_) => {
+        Ok(output) if output.status.success() => true,
+        _ => {
             println!("\n '{}' isn't installed or isn't on your PATH.", command);
             println!("   {}", install_hint);
             false
