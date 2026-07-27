@@ -7,12 +7,14 @@ framework, etc.) needs to follow to plug into the system correctly.
 This is a living document — update it whenever the generation system
 changes shape, not just when new features are added.
 
-**Status:** the file/gitignore/npm-package pattern is proven by two real
-examples now (Tailwind CSS for frontend, and — see below — the backend
-scaffolding for Django/Express, which follows a related but distinct
-pattern of its own). Static Webpage and Basic Webapp generation are both
-fully working as of the last build session. `chaos write` (the syntax
-translation layer) is still unbuilt.
+**Status:** the `BuildPlan` pattern is proven for frontend features
+(Tailwind, Bootstrap, Sass, plain CSS, JS). Backend generation now spans
+eight language/framework combinations across two distinct patterns (see
+below). **Only Django and Express have been verified by a real test
+run** — the rest (Fastify, NestJS, Flask, Go/Gin, Rails, Laravel, and all
+three new CSS options) were just built and are pending their first test.
+Update this status note once each has actually been run successfully.
+`chaos write` (the syntax translation layer) is still unbuilt.
 
 ---
 
@@ -102,29 +104,73 @@ touching the install logic itself, only the feature's own function.
 ## A second pattern: backend scaffolding (orchestration, not file-writing)
 
 Frontend features (Tailwind, plain CSS, JS) work by **writing file content
-Chaos itself authors**, via the `BuildPlan` contract above. Backend
+Chaos itself authors**, via the `BuildPlan` contract above. Most backend
 features work differently: rather than authoring files, Chaos **installs
 the real framework and shells out to its own official scaffolding tool**
-(`django-admin startproject`, `npx express-generator`) — since that's the
-only way to get genuinely correct, idiomatic project structure rather
-than a hand-rolled imitation of it.
+(`django-admin startproject`, `npx express-generator`, `rails new`,
+`composer create-project laravel/laravel`, `nest new`, `fastify-cli
+generate`) — since that's the only way to get genuinely correct,
+idiomatic project structure rather than a hand-rolled imitation of it.
 
 This means backend generation doesn't go through `BuildPlan` at all. It's
-handled by its own function (`generate_backend`) which:
+handled by a dispatcher function (`generate_backend`) which matches on
+`(backend_language, backend_framework)` and routes to one of several
+per-framework generator functions, each of which:
 
-1. Creates the `backend/` folder
-2. Installs the framework (into a virtual environment, for Python)
+1. Checks its required toolchain is actually installed (see `require_tool`
+   below) before doing anything else
+2. Installs the framework itself
 3. Runs that framework's own CLI generator, scoped to `backend/`
 4. Returns a list of `.gitignore` entries the caller merges into the
    project's root `.gitignore`
 
-**Important consequence:** for backend scaffolding, *installation and
-generation are the same step* — unlike frontend, where files exist
-whether or not `npm install` actually runs. If the user opts out of
-dependency installation, the backend genuinely cannot be scaffolded at
-all (no Django project can exist without Django being installed first).
-Chaos handles this by creating an empty `backend/` folder and printing a
-clear explanation, rather than silently failing or pretending to succeed.
+### A third pattern: hand-authored backends (no official CLI exists)
+
+Two backends — **Flask** (Python) and **Gin** (Go) — have no official
+project-scaffolding tool at all. Real-world projects in both are just
+"install the library, write the entry file by hand." Chaos follows suit:
+it still installs the library/module for real, but authors the starter
+file (`app.py`, `main.go`) itself, the same way frontend features do.
+Gin's generated file includes a credit comment linking to the project,
+since it's a community open source framework, not an official language
+tool.
+
+**Important consequence:** for every backend except the hand-authored
+ones, *installation and generation are the same step* — unlike frontend,
+where files exist whether or not `npm install` actually runs. If the
+user opts out of dependency installation, none of the CLI-orchestrated
+backends can be scaffolded at all (no Django project can exist without
+Django being installed first). Chaos handles this by creating an empty
+`backend/` folder and printing a clear explanation, rather than silently
+failing or pretending to succeed.
+
+## The `require_tool` guardrail
+
+Every function that shells out to an external tool (`python3`, `npx`,
+`go`, `ruby`, `rails`, `php`, `composer`, `npm`) checks first that the
+tool actually exists on the user's machine:
+
+```rust
+fn require_tool(command: &str, install_hint: &str) -> bool {
+    let check = Command::new(command).arg("--version").output();
+    match check {
+        Ok(_) => true,
+        Err(_) => {
+            println!("\n '{}' isn't installed or isn't on your PATH.", command);
+            println!("   {}", install_hint);
+            false
+        }
+    }
+}
+```
+
+**Rule: any new backend integration must call this before attempting to
+run its toolchain**, and must pass a real, working install link — not a
+vague "install X" message. The goal is that someone hitting a missing
+dependency gets told exactly what to do next, rather than seeing a raw
+Rust panic. This was added specifically because early testing (before
+this guardrail existed) crashed with a confusing OS-level error rather
+than a clear message — see the lesson below.
 
 ### Lesson learned: relative paths + `current_dir` don't mix reliably
 
@@ -149,7 +195,13 @@ following this pattern should do the same.
   (e.g. two libraries both wanting to modify `package.json`). This hasn't
   come up yet since only one frontend feature (Tailwind) writes one
   currently.
-- Backend scaffolding is currently proven for exactly two frameworks
-  (Django, Express). A third backend framework/language would be the
-  real test of whether `generate_backend`'s `match` structure holds up
-  as a general pattern, or needs further generalizing.
+- **Untested as of this writing:** Fastify, NestJS, Flask, Go/Gin, Rails,
+  Laravel, Bootstrap, Sass. Two specific uncertainties flagged before
+  testing began: whether `nest new .` and `rails new .` actually accept
+  `.` (current directory) as their target, or insist on a fresh named
+  subfolder — if either fails, check this first.
+- Bootstrap's generated HTML links directly to
+  `node_modules/bootstrap/dist/css/bootstrap.min.css` rather than a
+  properly bundled/copied file. Works for local dev via `chaos run`
+  later, but isn't how Bootstrap would be referenced in a real
+  production build — worth revisiting once `chaos run` exists.
