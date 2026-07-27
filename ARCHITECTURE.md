@@ -8,13 +8,14 @@ This is a living document — update it whenever the generation system
 changes shape, not just when new features are added.
 
 **Status:** the `BuildPlan` pattern is proven for frontend features
-(Tailwind, Bootstrap, Sass, plain CSS, JS). Backend generation now spans
+(Tailwind, Bootstrap, Sass, plain CSS, JS). Backend generation spans
 eight language/framework combinations across two distinct patterns (see
-below). **Only Django and Express have been verified by a real test
-run** — the rest (Fastify, NestJS, Flask, Go/Gin, Rails, Laravel, and all
-three new CSS options) were just built and are pending their first test.
-Update this status note once each has actually been run successfully.
-`chaos write` (the syntax translation layer) is still unbuilt.
+below). **All eight backends, all four CSS options, and the
+dependencies-declined edge case have been tested end to end** as of the
+last build session. One real bug was found and fixed during this pass
+(see the `require_tool` section below) — everything else worked as
+designed on first test. `chaos write` (the syntax translation layer) is
+still unbuilt.
 
 ---
 
@@ -177,11 +178,16 @@ than a clear message — see the lesson below.
 stub scripts. These print "X is not currently installed" — but exit with
 code `0` (success), violating the standard convention that non-zero means
 failure. This silently defeated the exit-status-only version of this
-check. The fix: also inspect the command's actual output text for that
-specific phrase, treating it as failure regardless of exit code. This is
-a narrow, macOS-specific patch, not a general "detect fake tools"
-solution — if a similarly-behaved stub is found on another platform or
-tool, it likely needs its own explicit string check added here.
+check (confirmed live: `require_tool` initially reported Rails as
+installed, and `generate_rails_backend` printed a false "Generated Rails
+project" success message despite nothing real being scaffolded). The
+fix: also inspect the command's actual output text for that specific
+phrase, treating it as failure regardless of exit code. Retested after
+the fix — correctly reports Rails as not installed, no phantom files
+written to `backend/`. This is a narrow, macOS-specific patch, not a
+general "detect fake tools" solution — if a similarly-behaved stub is
+found on another platform or tool, it likely needs its own explicit
+string check added here.
 
 ### Lesson learned: relative paths + `current_dir` don't mix reliably
 
