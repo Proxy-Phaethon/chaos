@@ -75,8 +75,26 @@ itself (`chaos write`), which is the real core of the project.
 
 ## Supported stacks (v1)
 
-- **Static Webpage** — HTML, CSS (Tailwind or plain), optional JavaScript
-- **Basic Webapp** — frontend as above + backend (Python/Django or TypeScript/Express)
+- **Static Webpage** — HTML, CSS (Tailwind, Plain CSS, Bootstrap, or Sass/SCSS), optional JavaScript
+- **Basic Webapp** — frontend as above, plus a real backend:
+
+| Language | Frameworks | Scaffolding method |
+|---|---|---|
+| Python | Django, Flask | Django via `django-admin`; Flask hand-authored (no official scaffolder exists) |
+| TypeScript | Express, Fastify, NestJS | Each framework's own official CLI generator |
+| Ruby | Rails | `rails new` |
+| PHP | Laravel | `composer create-project laravel/laravel` |
+| Go | Gin | Hand-authored — [Gin](https://github.com/gin-gonic/gin) is an open source community framework, credited in the generated code |
+
+Every backend checks that its required toolchain (Python, Node, Ruby, PHP,
+Go, Composer) is actually installed before attempting to scaffold, and
+prints a clear install link if it's missing, rather than failing silently
+or crashing.
+
+The CSS additions and five of the eight backend paths (Fastify, NestJS,
+Flask, Go/Gin, Rails, Laravel) are newly built and **not yet verified by a
+real test run** — Django and Express are the two paths that have been
+fully tested end to end so far.
 
 More languages, frameworks, and project types are planned — the system is
 built so adding them is a data change, not a rewrite.
