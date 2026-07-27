@@ -172,6 +172,17 @@ Rust panic. This was added specifically because early testing (before
 this guardrail existed) crashed with a confusing OS-level error rather
 than a clear message — see the lesson below.
 
+**Confirmed real-world case:** on macOS, several deprecated system tools
+(`ruby`, and gem-based commands like `rails`) are replaced with Apple
+stub scripts. These print "X is not currently installed" — but exit with
+code `0` (success), violating the standard convention that non-zero means
+failure. This silently defeated the exit-status-only version of this
+check. The fix: also inspect the command's actual output text for that
+specific phrase, treating it as failure regardless of exit code. This is
+a narrow, macOS-specific patch, not a general "detect fake tools"
+solution — if a similarly-behaved stub is found on another platform or
+tool, it likely needs its own explicit string check added here.
+
 ### Lesson learned: relative paths + `current_dir` don't mix reliably
 
 When chaining multiple external commands inside a freshly-created folder
