@@ -19,14 +19,53 @@ enum Commands {
     Run,
 }
 
+// ---------- Config structs ----------
+
 struct ProjectConfig {
     project_name: String,
     project_type: String,
-    styling: String,
-    include_js: bool,
+    frontend_language: Option<String>,
     backend_language: Option<String>,
-    backend_framework: Option<String>,
+    frontend: Option<FrontendConfig>,
+    backend: Option<BackendConfig>,
+    database: Option<DatabaseConfig>,
+    background_jobs: Option<String>,
+    auth: Option<String>,
+    tooling: ToolingConfig,
+    infra: InfraConfig,
     install_dependencies: bool,
+}
+
+struct FrontendConfig {
+    framework: String,
+    meta_framework: Option<String>,
+    styling: String,
+    component_library: Option<String>,
+    include_js: bool,
+    state_management: Option<String>,
+    data_fetching: Option<String>,
+    forms: Option<String>,
+}
+
+struct BackendConfig {
+    framework: String,
+}
+
+struct DatabaseConfig {
+    engine: String,
+    provider: Option<String>,
+    orm: Option<String>,
+}
+
+struct ToolingConfig {
+    linting: Option<String>,
+    testing: Option<String>,
+    git_hooks: Option<String>,
+}
+
+struct InfraConfig {
+    docker: bool,
+    hosting: Option<String>,
 }
 
 struct BuildPlan {
@@ -117,7 +156,7 @@ fn run_initialize() {
     let project_name = sanitize_project_name(&raw_name);
     println!("Project folder will be named: {}", project_name);
 
-    let project_types = vec!["Static Webpage", "Basic Webapp"];
+    let project_types = vec!["Static Website", "Web Application"];
     let selection = Select::with_theme(&theme)
         .with_prompt("What are you building?")
         .items(&project_types)
@@ -126,86 +165,563 @@ fn run_initialize() {
         .unwrap();
     let project_type = project_types[selection].to_string();
 
-    let styling_options = vec!["Tailwind CSS", "Plain CSS", "Bootstrap", "Sass/SCSS"];
-    let selection = Select::with_theme(&theme)
-        .with_prompt("Choose your styling approach")
+    let config = if project_type == "Static Website" {
+        build_static_website_config(&theme, project_name, project_type)
+    } else {
+        build_web_application_config(&theme, project_name, project_type)
+    };
+
+    print_summary(&config);
+    generate_project(&config);
+}
+
+fn build_static_website_config(
+    theme: &ColorfulTheme,
+    project_name: String,
+    project_type: String,
+) -> ProjectConfig {
+    let (styling, _) = ask_styling(theme, "None");
+
+    let include_js = Confirm::with_theme(theme)
+        .with_prompt("Include JavaScript?")
+        .default(true)
+        .interact()
+        .unwrap();
+
+    let install_dependencies = Confirm::with_theme(theme)
+        .with_prompt("Install dependencies now?")
+        .default(true)
+        .interact()
+        .unwrap();
+
+    ProjectConfig {
+        project_name,
+        project_type,
+        frontend_language: None,
+        backend_language: None,
+        frontend: Some(FrontendConfig {
+            framework: "None".to_string(),
+            meta_framework: None,
+            styling,
+            component_library: None,
+            include_js,
+            state_management: None,
+            data_fetching: None,
+            forms: None,
+        }),
+        backend: None,
+        database: None,
+        background_jobs: None,
+        auth: None,
+        tooling: ToolingConfig {
+            linting: None,
+            testing: None,
+            git_hooks: None,
+        },
+        infra: InfraConfig {
+            docker: false,
+            hosting: None,
+        },
+        install_dependencies,
+    }
+}
+
+fn build_web_application_config(
+    theme: &ColorfulTheme,
+    project_name: String,
+    project_type: String,
+) -> ProjectConfig {
+    let (frontend_language, backend_language) = ask_languages(theme);
+    let (framework, meta_framework) = ask_frontend_framework(theme);
+    let backend_framework = ask_backend_framework(theme, &backend_language);
+    let database = ask_database(theme, &backend_language);
+    let background_jobs = ask_background_jobs(theme, &backend_language);
+    let (styling, component_library) = ask_styling(theme, &framework);
+    let state_management = ask_state_management(theme, &framework);
+    let data_fetching = ask_data_fetching(theme, &framework, &frontend_language, &backend_language);
+    let forms = ask_forms(theme, &framework);
+    let auth = ask_auth(theme, &database, &meta_framework);
+    let tooling = ask_tooling(theme, &frontend_language, &backend_language);
+    let infra = ask_infra(theme);
+
+    let install_dependencies = Confirm::with_theme(theme)
+        .with_prompt("Install dependencies now?")
+        .default(true)
+        .interact()
+        .unwrap();
+
+    ProjectConfig {
+        project_name,
+        project_type,
+        frontend_language: Some(frontend_language),
+        backend_language: Some(backend_language),
+        frontend: Some(FrontendConfig {
+            framework,
+            meta_framework,
+            styling,
+            component_library,
+            include_js: true,
+            state_management,
+            data_fetching,
+            forms,
+        }),
+        backend: Some(BackendConfig {
+            framework: backend_framework,
+        }),
+        database,
+        background_jobs,
+        auth,
+        tooling,
+        infra,
+        install_dependencies,
+    }
+}
+
+fn ask_languages(theme: &ColorfulTheme) -> (String, String) {
+    let lang_options = vec!["TypeScript", "JavaScript"];
+    let selection = Select::with_theme(theme)
+        .with_prompt("Frontend language?")
+        .items(&lang_options)
+        .default(0)
+        .interact()
+        .unwrap();
+    let frontend_language = lang_options[selection].to_string();
+
+    let backend_options = vec![
+        "TypeScript", "Go", "Python", "Rust", "PHP", "Ruby", "Java", "C#", "Elixir",
+    ];
+    let selection = Select::with_theme(theme)
+        .with_prompt("Backend language?")
+        .items(&backend_options)
+        .default(0)
+        .interact()
+        .unwrap();
+    let backend_language = backend_options[selection].to_string();
+
+    (frontend_language, backend_language)
+}
+
+fn ask_frontend_framework(theme: &ColorfulTheme) -> (String, Option<String>) {
+    let frameworks = vec![
+        "None", "React", "Vue.js", "Angular", "Svelte", "SolidJS", "Preact", "Qwik",
+    ];
+    let selection = Select::with_theme(theme)
+        .with_prompt("Frontend framework?")
+        .items(&frameworks)
+        .default(0)
+        .interact()
+        .unwrap();
+    let framework = frameworks[selection].to_string();
+
+    let meta_options: Vec<&str> = match framework.as_str() {
+        "React" => vec!["None", "Next.js", "Remix"],
+        "Vue.js" => vec!["None", "Nuxt"],
+        "Svelte" => vec!["None", "SvelteKit"],
+        "SolidJS" => vec!["None", "SolidStart"],
+        _ => vec![],
+    };
+
+    let meta_framework = if !meta_options.is_empty() {
+        let selection = Select::with_theme(theme)
+            .with_prompt("Meta-framework?")
+            .items(&meta_options)
+            .default(0)
+            .interact()
+            .unwrap();
+        let choice = meta_options[selection].to_string();
+        if choice == "None" { None } else { Some(choice) }
+    } else {
+        None
+    };
+
+    (framework, meta_framework)
+}
+
+fn ask_backend_framework(theme: &ColorfulTheme, backend_language: &str) -> String {
+    let frameworks: Vec<&str> = match backend_language {
+        "TypeScript" => vec!["Express", "NestJS", "Fastify", "Elysia", "Hono"],
+        "Go" => vec!["Gin", "Fiber", "Chi", "Echo"],
+        "Python" => vec!["FastAPI", "Django", "Flask", "FastHTML"],
+        "Rust" => vec!["Axum", "Actix-web", "Rocket", "Poem"],
+        "PHP" => vec!["Laravel", "Symfony", "CodeIgniter", "Slim", "Flight"],
+        "Ruby" => vec!["Rails", "Sinatra", "Hanami"],
+        "Java" => vec!["Spring Boot", "Quarkus", "Micronaut", "Ktor"],
+        "C#" => vec!["ASP.NET Minimal API", "ASP.NET Web API", "ASP.NET MVC", "Razor Pages"],
+        "Elixir" => vec!["Phoenix"],
+        _ => vec![],
+    };
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("Backend framework?")
+        .items(&frameworks)
+        .default(0)
+        .interact()
+        .unwrap();
+    frameworks[selection].to_string()
+}
+
+fn ask_database(theme: &ColorfulTheme, backend_language: &str) -> Option<DatabaseConfig> {
+    let wants_db = Confirm::with_theme(theme)
+        .with_prompt("Do you need a database?")
+        .default(true)
+        .interact()
+        .unwrap();
+
+    if !wants_db {
+        return None;
+    }
+
+    let engines = vec![
+        "PostgreSQL", "MySQL", "SQLite", "MS SQL Server", "MariaDB",
+        "MongoDB", "CouchDB", "Redis", "Cassandra", "DynamoDB", "Neo4j",
+        "Firebase Firestore",
+    ];
+    let selection = Select::with_theme(theme)
+        .with_prompt("Database engine?")
+        .items(&engines)
+        .default(0)
+        .interact()
+        .unwrap();
+    let engine = engines[selection].to_string();
+
+    let provider = if engine == "Firebase Firestore" {
+        Some("Firebase".to_string())
+    } else {
+        let provider_options: Vec<&str> = match engine.as_str() {
+            "PostgreSQL" => vec!["Self-hosted", "Supabase", "Neon", "AWS RDS", "CockroachDB"],
+            "MySQL" => vec!["Self-hosted", "PlanetScale", "AWS RDS"],
+            "MongoDB" => vec!["Self-hosted", "MongoDB Atlas"],
+            _ => vec!["Self-hosted"],
+        };
+        let selection = Select::with_theme(theme)
+            .with_prompt("Hosting/provider?")
+            .items(&provider_options)
+            .default(0)
+            .interact()
+            .unwrap();
+        let choice = provider_options[selection].to_string();
+        if choice == "Self-hosted" { None } else { Some(choice) }
+    };
+
+    let orm = if engine == "Firebase Firestore" {
+        None
+    } else {
+        let orm_options: Vec<&str> = match backend_language {
+            "TypeScript" => vec!["Prisma", "Drizzle", "TypeORM", "Sequelize", "Kysely", "Mongoose"],
+            "Go" => vec!["SQLC", "GORM", "Ent", "Pgx"],
+            "Python" => vec!["SQLAlchemy", "SQLModel", "Tortoise ORM"],
+            "Rust" => vec!["Diesel", "SeaORM", "SQLx"],
+            "PHP" => vec!["Doctrine"],
+            "Java" => vec!["Hibernate"],
+            "C#" => vec!["Entity Framework Core"],
+            _ => vec![],
+        };
+        if !orm_options.is_empty() {
+            let selection = Select::with_theme(theme)
+                .with_prompt("ORM / query layer?")
+                .items(&orm_options)
+                .default(0)
+                .interact()
+                .unwrap();
+            Some(orm_options[selection].to_string())
+        } else {
+            None
+        }
+    };
+
+    Some(DatabaseConfig { engine, provider, orm })
+}
+
+fn ask_background_jobs(theme: &ColorfulTheme, backend_language: &str) -> Option<String> {
+    let wants_jobs = Confirm::with_theme(theme)
+        .with_prompt("Do you need background jobs / task queues?")
+        .default(false)
+        .interact()
+        .unwrap();
+
+    if !wants_jobs {
+        return None;
+    }
+
+    let mut options: Vec<&str> = match backend_language {
+        "TypeScript" => vec!["BullMQ"],
+        "Python" => vec!["Celery"],
+        "Go" => vec!["Asynq"],
+        _ => vec![],
+    };
+    options.extend(vec!["Redis (raw)", "RabbitMQ", "Apache Kafka"]);
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("Background job system?")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+    Some(options[selection].to_string())
+}
+
+fn ask_styling(theme: &ColorfulTheme, framework: &str) -> (String, Option<String>) {
+    let styling_options = vec![
+        "Tailwind CSS", "Plain CSS", "Sass/SCSS", "Bootstrap", "Bulma",
+        "Foundation", "Semantic UI", "Materialize", "Pure.css", "UIKit", "Pico.css",
+    ];
+    let selection = Select::with_theme(theme)
+        .with_prompt("CSS / styling approach?")
         .items(&styling_options)
         .default(0)
         .interact()
         .unwrap();
     let styling = styling_options[selection].to_string();
 
-    let include_js = Confirm::with_theme(&theme)
-        .with_prompt("Include JavaScript?")
-        .default(true)
-        .interact()
-        .unwrap();
-
-    let mut backend_language: Option<String> = None;
-    let mut backend_framework: Option<String> = None;
-
-    if project_type == "Basic Webapp" {
-        let backend_options = vec!["Python", "TypeScript", "Ruby", "PHP", "Go"];
-        let selection = Select::with_theme(&theme)
-            .with_prompt("Choose your backend language")
-            .items(&backend_options)
-            .default(0)
-            .interact()
-            .unwrap();
-        let language = backend_options[selection].to_string();
-
-        let frameworks: Vec<&str> = match language.as_str() {
-            "Python" => vec!["Django", "Flask"],
-            "TypeScript" => vec!["Express", "Fastify", "NestJS"],
-            "Ruby" => vec!["Rails"],
-            "PHP" => vec!["Laravel"],
-            "Go" => vec!["Gin"],
-            _ => vec![],
-        };
-
-        let selection = Select::with_theme(&theme)
-            .with_prompt("Choose your backend framework")
-            .items(&frameworks)
-            .default(0)
-            .interact()
-            .unwrap();
-        let framework = frameworks[selection].to_string();
-
-        backend_language = Some(language);
-        backend_framework = Some(framework);
-    }
-
-    let install_dependencies = Confirm::with_theme(&theme)
-        .with_prompt("Install dependencies now?")
-        .default(true)
-        .interact()
-        .unwrap();
-
-    let config = ProjectConfig {
-        project_name,
-        project_type,
-        styling,
-        include_js,
-        backend_language,
-        backend_framework,
-        install_dependencies,
+    let component_options: Vec<&str> = match framework {
+        "React" => vec!["None", "Chakra UI", "Radix UI", "Headless UI", "Shadcn/ui"],
+        "Vue.js" => vec!["None", "PrimeVue"],
+        _ => vec![],
     };
 
+    let component_library = if !component_options.is_empty() {
+        let selection = Select::with_theme(theme)
+            .with_prompt("Component library?")
+            .items(&component_options)
+            .default(0)
+            .interact()
+            .unwrap();
+        let choice = component_options[selection].to_string();
+        if choice == "None" { None } else { Some(choice) }
+    } else {
+        None
+    };
+
+    (styling, component_library)
+}
+
+fn ask_state_management(theme: &ColorfulTheme, framework: &str) -> Option<String> {
+    if framework == "None" {
+        return None;
+    }
+
+    let mut options: Vec<&str> = match framework {
+        "React" => vec!["Zustand", "Redux Toolkit", "Recoil", "Jotai"],
+        "Vue.js" => vec!["Pinia"],
+        "Svelte" => vec!["Svelte Stores", "Svelte Runes"],
+        _ => vec![],
+    };
+    options.extend(vec!["MobX", "XState", "Nano Stores", "None"]);
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("State management?")
+        .items(&options)
+        .default(options.len() - 1)
+        .interact()
+        .unwrap();
+    let choice = options[selection].to_string();
+    if choice == "None" { None } else { Some(choice) }
+}
+
+fn ask_data_fetching(
+    theme: &ColorfulTheme,
+    framework: &str,
+    frontend_language: &str,
+    backend_language: &str,
+) -> Option<String> {
+    let mut options = vec!["None", "TanStack Query"];
+    if framework == "React" {
+        options.push("SWR");
+    }
+    if frontend_language == "TypeScript" && backend_language == "TypeScript" {
+        options.push("tRPC");
+        options.push("ts-rest");
+    }
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("Data fetching approach?")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+    let choice = options[selection].to_string();
+    if choice == "None" { None } else { Some(choice) }
+}
+
+fn ask_forms(theme: &ColorfulTheme, framework: &str) -> Option<String> {
+    let mut options: Vec<&str> = match framework {
+        "React" => vec!["React Hook Form", "Formik"],
+        "Vue.js" => vec!["FormKit"],
+        _ => vec![],
+    };
+    options.extend(vec!["Zod", "Valibot", "Yup", "None"]);
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("Forms & validation?")
+        .items(&options)
+        .default(options.len() - 1)
+        .interact()
+        .unwrap();
+    let choice = options[selection].to_string();
+    if choice == "None" { None } else { Some(choice) }
+}
+
+fn ask_auth(
+    theme: &ColorfulTheme,
+    database: &Option<DatabaseConfig>,
+    meta_framework: &Option<String>,
+) -> Option<String> {
+    let mut options = vec!["None"];
+
+    if let Some(db) = database {
+        if db.provider.as_deref() == Some("Supabase") {
+            options.push("Supabase Auth");
+        }
+        if db.provider.as_deref() == Some("Firebase") {
+            options.push("Firebase Auth");
+        }
+    }
+    if meta_framework.as_deref() == Some("Next.js") {
+        options.push("Auth.js/NextAuth");
+    }
+    options.extend(vec!["Clerk", "Auth0", "Kinde", "Stytch", "Lucia", "Passport.js"]);
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("Auth provider?")
+        .items(&options)
+        .default(0)
+        .interact()
+        .unwrap();
+    let choice = options[selection].to_string();
+    if choice == "None" { None } else { Some(choice) }
+}
+
+fn ask_tooling(theme: &ColorfulTheme, frontend_language: &str, backend_language: &str) -> ToolingConfig {
+    let js_involved = frontend_language == "TypeScript"
+        || frontend_language == "JavaScript"
+        || backend_language == "TypeScript";
+
+    let mut lint_options: Vec<&str> = vec![];
+    if js_involved {
+        lint_options.extend(vec!["ESLint + Prettier", "Biome", "Oxlint"]);
+    }
+    match backend_language {
+        "Python" => lint_options.extend(vec!["Ruff", "Black + Flake8"]),
+        "Go" => lint_options.push("Golangci-lint + Gofmt"),
+        "Rust" => lint_options.push("Clippy + Rustfmt"),
+        _ => {}
+    }
+    lint_options.push("None");
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("Linting/formatting?")
+        .items(&lint_options)
+        .default(lint_options.len() - 1)
+        .interact()
+        .unwrap();
+    let choice = lint_options[selection].to_string();
+    let linting = if choice == "None" { None } else { Some(choice) };
+
+    let mut test_options: Vec<&str> = vec![];
+    if js_involved {
+        test_options.extend(vec!["Vitest", "Jest", "Playwright", "Cypress"]);
+    }
+    match backend_language {
+        "Python" => test_options.push("PyTest"),
+        "Go" => test_options.push("Go Test"),
+        _ => {}
+    }
+    test_options.push("None");
+
+    let selection = Select::with_theme(theme)
+        .with_prompt("Testing framework?")
+        .items(&test_options)
+        .default(test_options.len() - 1)
+        .interact()
+        .unwrap();
+    let choice = test_options[selection].to_string();
+    let testing = if choice == "None" { None } else { Some(choice) };
+
+    let hook_options: Vec<&str> = if js_involved {
+        vec!["Husky + lint-staged", "Lefthook", "None"]
+    } else {
+        vec!["Lefthook", "simple-git-hooks", "None"]
+    };
+    let selection = Select::with_theme(theme)
+        .with_prompt("Git hooks?")
+        .items(&hook_options)
+        .default(hook_options.len() - 1)
+        .interact()
+        .unwrap();
+    let choice = hook_options[selection].to_string();
+    let git_hooks = if choice == "None" { None } else { Some(choice) };
+
+    ToolingConfig { linting, testing, git_hooks }
+}
+
+fn ask_infra(theme: &ColorfulTheme) -> InfraConfig {
+    let docker = Confirm::with_theme(theme)
+        .with_prompt("Containerize with Docker?")
+        .default(false)
+        .interact()
+        .unwrap();
+
+    let hosting_options = vec!["None", "Vercel", "Netlify", "Render", "AWS"];
+    let selection = Select::with_theme(theme)
+        .with_prompt("Hosting target?")
+        .items(&hosting_options)
+        .default(0)
+        .interact()
+        .unwrap();
+    let choice = hosting_options[selection].to_string();
+    let hosting = if choice == "None" { None } else { Some(choice) };
+
+    InfraConfig { docker, hosting }
+}
+
+fn print_summary(config: &ProjectConfig) {
     println!("\n--- Config Summary ---");
     println!("Project name: {}", config.project_name);
     println!("Project type: {}", config.project_type);
-    println!("Styling: {}", config.styling);
-    println!("Include JS: {}", config.include_js);
+    println!("Frontend language: {:?}", config.frontend_language);
     println!("Backend language: {:?}", config.backend_language);
-    println!("Backend framework: {:?}", config.backend_framework);
-    println!("Install dependencies: {}", config.install_dependencies);
-    println!();
 
-    if config.project_type == "Static Webpage" {
-        generate_static_webpage(&config);
-    } else {
-        generate_basic_webapp(&config);
+    if let Some(fe) = &config.frontend {
+        println!("\nFrontend:");
+        println!("  Framework: {}", fe.framework);
+        println!("  Meta-framework: {:?}", fe.meta_framework);
+        println!("  Styling: {}", fe.styling);
+        println!("  Component library: {:?}", fe.component_library);
+        println!("  Include JS: {}", fe.include_js);
+        println!("  State management: {:?}", fe.state_management);
+        println!("  Data fetching: {:?}", fe.data_fetching);
+        println!("  Forms: {:?}", fe.forms);
     }
+
+    if let Some(be) = &config.backend {
+        println!("\nBackend:");
+        println!("  Framework: {}", be.framework);
+    }
+
+    match &config.database {
+        Some(db) => {
+            println!("\nDatabase:");
+            println!("  Engine: {}", db.engine);
+            println!("  Provider: {:?}", db.provider);
+            println!("  ORM: {:?}", db.orm);
+        }
+        None => println!("\nDatabase: None"),
+    }
+
+    println!("\nBackground jobs: {:?}", config.background_jobs);
+    println!("Auth: {:?}", config.auth);
+
+    println!("\nTooling:");
+    println!("  Linting: {:?}", config.tooling.linting);
+    println!("  Testing: {:?}", config.tooling.testing);
+    println!("  Git hooks: {:?}", config.tooling.git_hooks);
+
+    println!("\nInfra:");
+    println!("  Docker: {}", config.infra.docker);
+    println!("  Hosting: {:?}", config.infra.hosting);
+
+    println!("\nInstall dependencies: {}", config.install_dependencies);
+    println!();
 }
 
 // ---------- Shared content helpers ----------
@@ -216,18 +732,18 @@ fn readme_content(config: &ProjectConfig) -> String {
 
 // ---------- Frontend feature contributors ----------
 
-fn add_html_boilerplate(plan: &mut BuildPlan, config: &ProjectConfig) {
-    let css_link = match config.styling.as_str() {
+fn add_html_boilerplate(plan: &mut BuildPlan, frontend: &FrontendConfig, project_name: &str) {
+    let css_link = match frontend.styling.as_str() {
         "Tailwind CSS" => "<link rel=\"stylesheet\" href=\"dist/output.css\">".to_string(),
         "Sass/SCSS" => "<link rel=\"stylesheet\" href=\"dist/output.css\">".to_string(),
         "Bootstrap" => {
             "<link rel=\"stylesheet\" href=\"node_modules/bootstrap/dist/css/bootstrap.min.css\">"
                 .to_string()
         }
-        _ => "<link rel=\"stylesheet\" href=\"styles/style.css\">".to_string(), // Plain CSS
+        _ => "<link rel=\"stylesheet\" href=\"styles/style.css\">".to_string(),
     };
 
-    let script_tag = if config.include_js {
+    let script_tag = if frontend.include_js {
         "<script src=\"script.js\"></script>"
     } else {
         ""
@@ -235,16 +751,16 @@ fn add_html_boilerplate(plan: &mut BuildPlan, config: &ProjectConfig) {
 
     let html = format!(
         "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>{}</title>\n    {}\n</head>\n<body>\n    <h1>Welcome to {}</h1>\n    {}\n</body>\n</html>",
-        config.project_name, css_link, config.project_name, script_tag
+        project_name, css_link, project_name, script_tag
     );
 
     plan.files.push(("index.html".to_string(), html));
 }
 
-fn add_tailwind(plan: &mut BuildPlan, config: &ProjectConfig) {
+fn add_tailwind(plan: &mut BuildPlan, project_name: &str) {
     let package_json = format!(
         "{{\n  \"name\": \"{}\",\n  \"scripts\": {{ \"build\": \"tailwindcss -i src/input.css -o dist/output.css\" }}\n}}",
-        config.project_name
+        project_name
     );
     plan.files.push(("package.json".to_string(), package_json));
     plan.files.push((
@@ -262,15 +778,14 @@ fn add_tailwind(plan: &mut BuildPlan, config: &ProjectConfig) {
 }
 
 fn add_bootstrap(plan: &mut BuildPlan) {
-    // Bootstrap ships pre-compiled CSS — no build step needed, just install and link directly.
     plan.npm_packages.push("bootstrap".to_string());
     plan.gitignore_entries.push("node_modules/".to_string());
 }
 
-fn add_sass(plan: &mut BuildPlan, config: &ProjectConfig) {
+fn add_sass(plan: &mut BuildPlan, project_name: &str) {
     let package_json = format!(
         "{{\n  \"name\": \"{}\",\n  \"scripts\": {{ \"build\": \"sass src/input.scss dist/output.css\" }}\n}}",
-        config.project_name
+        project_name
     );
     plan.files.push(("package.json".to_string(), package_json));
     plan.files.push((
@@ -297,29 +812,30 @@ fn add_javascript(plan: &mut BuildPlan) {
     ));
 }
 
-fn generate_frontend_plan(config: &ProjectConfig) -> BuildPlan {
+fn generate_frontend_plan(frontend: &FrontendConfig, project_name: &str) -> BuildPlan {
     let mut plan = BuildPlan::new();
 
-    add_html_boilerplate(&mut plan, config);
+    add_html_boilerplate(&mut plan, frontend, project_name);
 
-    match config.styling.as_str() {
-        "Tailwind CSS" => add_tailwind(&mut plan, config),
+    match frontend.styling.as_str() {
+        "Tailwind CSS" => add_tailwind(&mut plan, project_name),
         "Bootstrap" => add_bootstrap(&mut plan),
-        "Sass/SCSS" => add_sass(&mut plan, config),
-        _ => add_plain_css(&mut plan), // Plain CSS
+        "Sass/SCSS" => add_sass(&mut plan, project_name),
+        _ => add_plain_css(&mut plan),
     }
 
-    if config.include_js {
+    if frontend.include_js {
         add_javascript(&mut plan);
     }
 
     plan
 }
 
-// ---------- Static Webpage ----------
+// ---------- Static Website ----------
 
 fn generate_static_webpage(config: &ProjectConfig) {
-    let mut plan = generate_frontend_plan(config);
+    let frontend = config.frontend.as_ref().unwrap();
+    let mut plan = generate_frontend_plan(frontend, &config.project_name);
     plan.files.push(("README.md".to_string(), readme_content(config)));
 
     execute_plan(&config.project_name, &plan);
@@ -329,31 +845,48 @@ fn generate_static_webpage(config: &ProjectConfig) {
     }
 }
 
-// ---------- Basic Webapp ----------
+// ---------- Web Application ----------
 
-fn generate_basic_webapp(config: &ProjectConfig) {
+fn generate_project(config: &ProjectConfig) {
+    if config.project_type == "Static Website" {
+        generate_static_webpage(config);
+        return;
+    }
+
     fs::create_dir_all(&config.project_name).expect("Failed to create project folder");
 
     let docs_folder = format!("{}/docs", config.project_name);
     fs::create_dir_all(&docs_folder).expect("Failed to create docs folder");
     fs::write(format!("{}/.gitkeep", docs_folder), "").expect("Failed to create docs placeholder");
 
-    // Frontend
-    let frontend_plan = generate_frontend_plan(config);
+    let frontend_cfg = config.frontend.as_ref().unwrap();
     let frontend_folder = format!("{}/frontend", config.project_name);
-    execute_plan(&frontend_folder, &frontend_plan);
+    let mut root_gitignore_entries: Vec<String> = Vec::new();
 
-    if config.install_dependencies && !frontend_plan.npm_packages.is_empty() {
-        run_npm_install(&frontend_folder, &frontend_plan.npm_packages);
+    if frontend_cfg.framework == "None" {
+        let frontend_plan = generate_frontend_plan(frontend_cfg, &config.project_name);
+        execute_plan(&frontend_folder, &frontend_plan);
+
+        if config.install_dependencies && !frontend_plan.npm_packages.is_empty() {
+            run_npm_install(&frontend_folder, &frontend_plan.npm_packages);
+        }
+
+        root_gitignore_entries.extend(
+            frontend_plan
+                .gitignore_entries
+                .iter()
+                .map(|entry| format!("frontend/{}", entry)),
+        );
+    } else {
+        fs::create_dir_all(&frontend_folder).expect("Failed to create frontend folder");
+        println!(
+            "\n Backend wasn't scaffolded — every supported backend requires installing \
+             the framework/toolchain before its project files can be generated. Run \
+             'chaos initialize' again with dependency installation enabled to build a \
+             real backend."
+        );
     }
 
-    let mut root_gitignore_entries: Vec<String> = frontend_plan
-        .gitignore_entries
-        .iter()
-        .map(|entry| format!("frontend/{}", entry))
-        .collect();
-
-    // Backend
     if config.install_dependencies {
         let backend_entries = generate_backend(config);
         root_gitignore_entries.extend(backend_entries);
@@ -361,14 +894,13 @@ fn generate_basic_webapp(config: &ProjectConfig) {
         fs::create_dir_all(format!("{}/backend", config.project_name))
             .expect("Failed to create backend folder");
         println!(
-            "Backend wasn't scaffolded — every supported backend requires installing \
+            "\n Backend wasn't scaffolded — every supported backend requires installing \
              the framework/toolchain before its project files can be generated. Run \
              'chaos initialize' again with dependency installation enabled to build a \
              real backend."
         );
     }
 
-    // Root README + .gitignore
     fs::write(
         format!("{}/README.md", config.project_name),
         readme_content(config),
@@ -382,6 +914,12 @@ fn generate_basic_webapp(config: &ProjectConfig) {
             .expect("Failed to write .gitignore");
         println!("Created: {}/.gitignore", config.project_name);
     }
+
+    println!(
+        "\nNote: database, background jobs, auth, tooling, and infra choices were \
+         captured in the config summary above but aren't wired into file generation \
+         yet — that's the next layer of work."
+    );
 }
 
 // ---------- Backend dispatcher ----------
@@ -394,7 +932,7 @@ fn generate_backend(config: &ProjectConfig) -> Vec<String> {
         fs::canonicalize(&backend_folder).expect("Failed to resolve backend folder path");
 
     let language = config.backend_language.as_deref();
-    let framework = config.backend_framework.as_deref();
+    let framework = config.backend.as_ref().map(|b| b.framework.as_str());
 
     println!(
         "\n🔧 Setting up {} backend ({})...",
@@ -436,7 +974,10 @@ fn generate_backend(config: &ProjectConfig) -> Vec<String> {
             vec![]
         }
         _ => {
-            println!("Unknown backend combination — skipping.");
+            println!(
+                "Backend combination ({:?}, {:?}) isn't built yet — captured in config only.",
+                language, framework
+            );
             vec![]
         }
     }
@@ -742,7 +1283,7 @@ fn run_npm_install(folder: &str, packages: &[String]) {
         return;
     }
 
-    println!("\n Installing dependencies...");
+    println!("\n📦 Installing dependencies...");
 
     let mut cmd = Command::new("npm");
     cmd.arg("install").arg("-D");
