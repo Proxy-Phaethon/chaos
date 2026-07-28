@@ -1,5 +1,7 @@
 # Chaos — Architecture Notes
 
+Currently testing the new additions.
+
 This document explains how `chaos initialize` generates projects, and the
 rules any new "feature" (a styling option, a JS library, a backend
 framework, etc.) needs to follow to plug into the system correctly.
