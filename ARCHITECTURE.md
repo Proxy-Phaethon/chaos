@@ -213,52 +213,101 @@ before building paths to executables inside a working directory you're
 also passing to `.current_dir(...)`. Any new backend integration
 following this pattern should do the same.
 
-## Planned: pre-flight / post-flow questions (not yet built)
+## Planned: the full `chaos initialize` question flow (Release 1, locked shape)
 
-The current question flow is fully linear — every question is asked in
-a fixed order, and later questions can only branch based on *earlier*
-answers (e.g. backend framework choices depend on the backend language
-already picked). This breaks down once the option list grows to include
-choices that depend on information from a *different, unrelated* branch
-— for example, offering tRPC as a frontend data-fetching option only
-makes sense if the backend is *also* TypeScript, but frontend questions
-are asked before the backend branch in the current flow.
+This is the target flow for Release 1 (web dev), superseding the current
+6-question version. Not yet implemented — `run_initialize` currently
+only asks a subset of this. Recorded here in full so implementation can
+proceed step by step without re-deriving the design.
 
-**Planned fix — split question-asking into three phases instead of one
-linear pass:**
+**The key insight that simplified this considerably:** most
+cross-branch dependencies aren't actually "need info from a whole other
+branch" problems — they're "need one specific fact slightly earlier
+than it would naturally come up" problems. Two different fixes apply:
 
-1. **Pre-flight phase** — a small number of global, stack-wide questions
-   asked *before* the main branching tree starts (e.g. "Will your
-   frontend be TypeScript?", "Will your backend be TypeScript?"). These
-   exist purely to make information available early enough for
-   later branches to use it, even though the branches themselves come
-   later.
-2. **Main flow** — the existing linear branch-by-branch flow, largely
-   unchanged, but now able to reference pre-flight answers when deciding
-   what to offer (e.g. only show tRPC as a data-fetching option if both
-   pre-flight TypeScript answers were yes).
-3. **Post-flow phase** — a final pass, after the entire main flow
-   completes, that offers additional options which only make sense in
-   hindsight of choices made *later* in the flow than where they'd
-   naturally be asked (e.g. "You picked Supabase as your database
-   provider — want to use Supabase Auth?", where auth is conceptually
-   asked before database provider in the main flow).
+- **tRPC/ts-rest** only need to know *language* (is the backend
+  TypeScript), not any framework specifics. Fixed by asking a **paired
+  language question early** — frontend language and backend language,
+  both captured before either side's framework question — rather than
+  needing a whole separate pre-flight phase.
+- **Auth** genuinely can't be resolved by reordering — it depends on
+  *specific* late details from both branches (database *provider*, and
+  frontend *meta-framework* specifically, e.g. Next.js). This is the one
+  case that must stay a true **post-flow** step, asked once after both
+  branches are fully complete. Nothing rushes to get here; it's fine
+  being last.
 
-**This is a genuine gap in the current architecture, not yet
-implemented.** `ProjectConfig` and the question flow in `run_initialize`
-would both need restructuring to support this — likely `ProjectConfig`
-gains a few pre-flight fields set before the main match/if chain runs,
-and a new post-flow function runs after `generate_backend`/frontend
-generation to offer additional, hindsight-dependent contributions to the
-build plan.
+This replaces the earlier three-phase (pre-flight/main/post-flow) plan —
+only one thing actually needed post-flow treatment, not several.
 
-**Two known options were dropped from consideration entirely** rather
-than solved by this pattern, since they weren't actually timing
-problems: **Astro** (framework-agnostic, doesn't fit a single-framework
-slot at all) and **PocketBase** (a full alternative backend, not really
-an auth provider). Both excluded from Release 1's scope. Users needing
-either can use the planned `chaos edit` command (see below) to
-hand-configure things Chaos doesn't offer directly.
+```
+chaos initialize
+
+├─ 1. Project name
+├─ 2. Project type → Static Website | Web Application
+│
+├─ (Web Application only, from here down — Static Website short-circuits
+│    to a reduced version of step 8 CSS/JS questions only, matching
+│    today's existing flow)
+│
+├─ 3. Paired language question
+│    ├─ 3.1 Frontend language? → TypeScript | JavaScript
+│    └─ 3.2 Backend language? → TypeScript | Go | Python | Rust | PHP |
+│              Ruby | Java | C# | Elixir
+│         (captured before either framework question, so tRPC/ts-rest
+│          eligibility is already known by the time step 8.3 is reached)
+│
+├─ 4. Frontend framework? (filtered by 3.1)
+│    └─ meta-framework, if applicable (Next.js, Nuxt, SvelteKit, SolidStart)
+│
+├─ 5. Backend framework? (filtered by 3.2)
+│
+├─ 6. Database — optional section
+│    ├─ 6.0 Do you need a database? (Y/N)
+│    └─ if Y:
+│         ├─ 6.1 Engine? (Postgres/MySQL/SQLite/Mongo/etc)
+│         ├─ 6.2 Hosting/provider? (filtered by 6.1)
+│         └─ 6.3 ORM? (filtered by 3.2 backend language; Eloquent
+│                auto-implied if 5 = Laravel, not asked separately)
+│
+├─ 7. Background jobs — optional (Y/N, then filtered by 3.2 language)
+│
+├─ 8. Frontend specifics
+│    ├─ 8.1 CSS/styling (+ component library option, filtered by 4)
+│    ├─ 8.2 State management (filtered by 4; skipped if 4 = None)
+│    ├─ 8.3 Data fetching — TanStack Query | SWR (React only) |
+│    │       tRPC/ts-rest (only offered if 3.1 AND 3.2 are both
+│    │       TypeScript)
+│    └─ 8.4 Forms & validation (filtered by 4)
+│
+├─ 9. POST-FLOW: Auth (the one true post-flow step — needs 6.2 provider
+│         and 4's meta-framework, both only known by this point)
+│    ├─ None
+│    ├─ Supabase Auth — only offered if 6.2 = Supabase
+│    ├─ Firebase Auth — only offered if 6.2 = Firebase
+│    ├─ Auth.js/NextAuth — only offered if 4 meta-framework = Next.js
+│    └─ (always available) → Clerk | Auth0 | Kinde | Stytch | Lucia |
+│              Passport.js
+│
+├─ 10. Cross-cutting tooling (linting, testing, git hooks — filtered by
+│         whichever languages ended up in use across 3.1/3.2)
+├─ 11. Infra (Docker Y/N, hosting target)
+└─ 12. Install dependencies now? (Y/N — same mechanism as current)
+```
+
+**Astro and PocketBase were dropped from this tree entirely**, not
+solved by reordering — Astro is framework-agnostic and doesn't fit a
+single-framework slot at all; PocketBase is a full alternative backend,
+not really an auth provider. Both out of Release 1 scope. Users needing
+either can use the planned `chaos edit` command (below) to hand-configure
+things Chaos doesn't offer directly.
+
+**Implementation note:** `ProjectConfig` will need a substantial field
+expansion to hold this — likely worth grouping related fields into
+nested sub-structs (e.g. a `DatabaseConfig` struct holding engine/
+provider/ORM together) rather than one flat struct with 25+ fields, to
+keep `generate_backend`-style dispatch functions readable. Not decided
+yet — revisit when implementation actually starts.
 
 ## Planned: `chaos edit` (fifth command, not yet built)
 
