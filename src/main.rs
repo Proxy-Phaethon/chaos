@@ -1032,6 +1032,8 @@ fn generate_vite_frontend(frontend_folder_abs: &Path, template: &str) -> bool {
         .arg(".")
         .arg("--template")
         .arg(template)
+        .arg("--no-interactive")
+        .arg("--no-immediate")
         .current_dir(frontend_folder_abs)
         .status()
         .expect("Failed to run create-vite");
@@ -1256,7 +1258,7 @@ fn generate_backend(config: &ProjectConfig) -> Vec<String> {
         }
         _ => {
             println!(
-                "⚠️  Backend combination ({:?}, {:?}) isn't built yet — captured in config only.",
+                "Backend combination ({:?}, {:?}) isn't built yet — captured in config only.",
                 language, framework
             );
             vec![]
@@ -1564,7 +1566,7 @@ fn run_npm_install(folder: &str, packages: &[String]) {
         return;
     }
 
-    println!("\n📦 Installing dependencies...");
+    println!("\n Installing dependencies...");
 
     let mut cmd = Command::new("npm");
     cmd.arg("install").arg("-D");
