@@ -878,13 +878,8 @@ fn generate_project(config: &ProjectConfig) {
                 .map(|entry| format!("frontend/{}", entry)),
         );
     } else {
-        fs::create_dir_all(&frontend_folder).expect("Failed to create frontend folder");
-        println!(
-            "\n Backend wasn't scaffolded — every supported backend requires installing \
-             the framework/toolchain before its project files can be generated. Run \
-             'chaos initialize' again with dependency installation enabled to build a \
-             real backend."
-        );
+        let frontend_entries = generate_frontend(config);
+        root_gitignore_entries.extend(frontend_entries);
     }
 
     if config.install_dependencies {
@@ -899,6 +894,12 @@ fn generate_project(config: &ProjectConfig) {
              'chaos initialize' again with dependency installation enabled to build a \
              real backend."
         );
+    }
+
+    for (path, content) in generate_docker_files(config) {
+        let full_path = format!("{}/{}", config.project_name, path);
+        fs::write(&full_path, content).expect("Failed to write docker file");
+        println!("Created: {}", full_path);
     }
 
     fs::write(
@@ -916,10 +917,290 @@ fn generate_project(config: &ProjectConfig) {
     }
 
     println!(
-        "\nNote: database, background jobs, auth, tooling, and infra choices were \
-         captured in the config summary above but aren't wired into file generation \
-         yet — that's the next layer of work."
+        "\nNote: database, background jobs, auth, and tooling choices were captured \
+         in the config summary above but aren't wired into file generation yet — \
+         that's the next layer of work."
     );
+}
+
+// ---------- Frontend dispatcher (framework/meta-framework scaffolding) ----------
+
+fn generate_frontend(config: &ProjectConfig) -> Vec<String> {
+    let frontend_folder = format!("{}/frontend", config.project_name);
+    fs::create_dir_all(&frontend_folder).expect("Failed to create frontend folder");
+
+    let frontend = config.frontend.as_ref().unwrap();
+
+    if !config.install_dependencies {
+        fs::create_dir_all(&frontend_folder).expect("Failed to create frontend folder");
+        println!(
+            "\n Frontend wasn't scaffolded — {} requires installing its toolchain \
+             before project files can be generated. Run 'chaos initialize' again with \
+             dependency installation enabled to build a real frontend.",
+            frontend.framework
+        );
+        return vec![];
+    }
+
+    let frontend_folder_abs =
+        fs::canonicalize(&frontend_folder).expect("Failed to resolve frontend folder path");
+
+    let ts = config.frontend_language.as_deref() == Some("TypeScript");
+
+    println!(
+        "\n🔧 Setting up {} frontend...",
+        frontend.meta_framework.as_deref().unwrap_or(&frontend.framework)
+    );
+
+    match frontend.meta_framework.as_deref() {
+        Some("Next.js") => {
+            generate_nextjs_frontend(&frontend_folder_abs, ts);
+            return vec!["frontend/node_modules/".to_string(), "frontend/.next/".to_string()];
+        }
+        Some("Nuxt") => {
+            generate_nuxt_frontend(&frontend_folder_abs);
+            return vec![
+                "frontend/node_modules/".to_string(),
+                "frontend/.nuxt/".to_string(),
+                "frontend/.output/".to_string(),
+            ];
+        }
+        Some("SvelteKit") => {
+            generate_sveltekit_frontend(&frontend_folder_abs);
+            return vec![
+                "frontend/node_modules/".to_string(),
+                "frontend/.svelte-kit/".to_string(),
+                "frontend/build/".to_string(),
+            ];
+        }
+        Some(other) => {
+            println!("Meta-framework {} isn't built yet — captured in config only.", other);
+            return vec![];
+        }
+        None => {}
+    }
+
+    match frontend.framework.as_str() {
+        "React" => {
+            let template = if ts { "react-ts" } else { "react" };
+            generate_vite_frontend(&frontend_folder_abs, template);
+            vec!["frontend/node_modules/".to_string(), "frontend/dist/".to_string()]
+        }
+        "Vue.js" => {
+            let template = if ts { "vue-ts" } else { "vue" };
+            generate_vite_frontend(&frontend_folder_abs, template);
+            vec!["frontend/node_modules/".to_string(), "frontend/dist/".to_string()]
+        }
+        "Svelte" => {
+            let template = if ts { "svelte-ts" } else { "svelte" };
+            generate_vite_frontend(&frontend_folder_abs, template);
+            vec!["frontend/node_modules/".to_string(), "frontend/dist/".to_string()]
+        }
+        "Preact" => {
+            let template = if ts { "preact-ts" } else { "preact" };
+            generate_vite_frontend(&frontend_folder_abs, template);
+            vec!["frontend/node_modules/".to_string(), "frontend/dist/".to_string()]
+        }
+        "SolidJS" => {
+            let template = if ts { "solid-ts" } else { "solid" };
+            generate_vite_frontend(&frontend_folder_abs, template);
+            vec!["frontend/node_modules/".to_string(), "frontend/dist/".to_string()]
+        }
+        "Angular" => {
+            generate_angular_frontend(&frontend_folder_abs, &config.project_name);
+            vec![
+                "frontend/node_modules/".to_string(),
+                "frontend/dist/".to_string(),
+                "frontend/.angular/".to_string(),
+            ]
+        }
+        other => {
+            println!("Frontend framework {} isn't built yet — captured in config only.", other);
+            vec![]
+        }
+    }
+}
+
+fn generate_vite_frontend(frontend_folder_abs: &Path, template: &str) -> bool {
+    if !require_tool("npx", "Install Node.js (which includes npx) from https://nodejs.org") {
+        return false;
+    }
+
+    let status = Command::new("npx")
+        .arg("--yes")
+        .arg("create-vite@latest")
+        .arg(".")
+        .arg("--template")
+        .arg(template)
+        .current_dir(frontend_folder_abs)
+        .status()
+        .expect("Failed to run create-vite");
+
+    if !status.success() {
+        println!("create-vite failed");
+        return false;
+    }
+    println!("Generated Vite + {} project", template);
+
+    let status = Command::new("npm")
+        .arg("install")
+        .current_dir(frontend_folder_abs)
+        .status()
+        .expect("Failed to run npm install");
+
+    if status.success() {
+        println!("Installed frontend dependencies");
+    } else {
+        println!("npm install failed");
+    }
+
+    status.success()
+}
+
+fn generate_angular_frontend(frontend_folder_abs: &Path, project_name: &str) -> bool {
+    if !require_tool("npx", "Install Node.js (which includes npx) from https://nodejs.org") {
+        return false;
+    }
+
+    let status = Command::new("npx")
+        .arg("--yes")
+        .arg("@angular/cli@latest")
+        .arg("new")
+        .arg(project_name)
+        .arg("--directory")
+        .arg(".")
+        .arg("--skip-git")
+        .arg("--defaults")
+        .current_dir(frontend_folder_abs)
+        .status()
+        .expect("Failed to run ng new");
+
+    if status.success() {
+        println!("Generated Angular project");
+    } else {
+        println!("ng new failed");
+    }
+
+    status.success()
+}
+
+fn generate_nextjs_frontend(frontend_folder_abs: &Path, typescript: bool) -> bool {
+    if !require_tool("npx", "Install Node.js (which includes npx) from https://nodejs.org") {
+        return false;
+    }
+
+    let mut cmd = Command::new("npx");
+    cmd.arg("--yes")
+        .arg("create-next-app@latest")
+        .arg(".")
+        .arg("--eslint")
+        .arg("--tailwind")
+        .arg("--app")
+        .arg("--no-src-dir")
+        .arg("--import-alias")
+        .arg("@/*")
+        .arg("--use-npm")
+        .arg("--yes");
+
+    if typescript {
+        cmd.arg("--ts");
+    } else {
+        cmd.arg("--js");
+    }
+
+    let status = cmd
+        .current_dir(frontend_folder_abs)
+        .status()
+        .expect("Failed to run create-next-app");
+
+    if status.success() {
+        println!("Generated Next.js project");
+    } else {
+        println!("create-next-app failed");
+    }
+
+    status.success()
+}
+
+fn generate_nuxt_frontend(frontend_folder_abs: &Path) -> bool {
+    if !require_tool("npx", "Install Node.js (which includes npx) from https://nodejs.org") {
+        return false;
+    }
+
+    let status = Command::new("npx")
+        .arg("--yes")
+        .arg("nuxi@latest")
+        .arg("init")
+        .arg(".")
+        .arg("--force")
+        .arg("--packageManager")
+        .arg("npm")
+        .current_dir(frontend_folder_abs)
+        .status()
+        .expect("Failed to run nuxi init");
+
+    if !status.success() {
+        println!("nuxi init failed");
+        return false;
+    }
+    println!("Generated Nuxt project");
+
+    let status = Command::new("npm")
+        .arg("install")
+        .current_dir(frontend_folder_abs)
+        .status()
+        .expect("Failed to run npm install");
+
+    if status.success() {
+        println!("Installed frontend dependencies");
+    } else {
+        println!("npm install failed");
+    }
+
+    status.success()
+}
+
+fn generate_sveltekit_frontend(frontend_folder_abs: &Path) -> bool {
+    if !require_tool("npx", "Install Node.js (which includes npx) from https://nodejs.org") {
+        return false;
+    }
+
+    let status = Command::new("npx")
+        .arg("--yes")
+        .arg("sv")
+        .arg("create")
+        .arg(".")
+        .arg("--template")
+        .arg("minimal")
+        .arg("--types")
+        .arg("ts")
+        .arg("--no-add-ons")
+        .current_dir(frontend_folder_abs)
+        .status()
+        .expect("Failed to run sv create");
+
+    if status.success() {
+        println!("Generated SvelteKit project");
+    } else {
+        println!("sv create failed");
+    }
+
+    status.success()
+}
+
+fn generate_docker_files(config: &ProjectConfig) -> Vec<(String, String)> {
+    if !config.infra.docker {
+        return vec![];
+    }
+
+    let dockerfile = "# Generated by Chaos — generic starter, adjust for your actual stack.\nFROM node:20-alpine\nWORKDIR /app\nCOPY . .\nRUN npm install\nCMD [\"npm\", \"start\"]\n".to_string();
+
+    let compose = "# Generated by Chaos — generic starter, adjust for your actual stack.\nservices:\n  app:\n    build: .\n    ports:\n      - \"3000:3000\"\n".to_string();
+
+    vec![
+        ("Dockerfile".to_string(), dockerfile),
+        ("docker-compose.yml".to_string(), compose),
+    ]
 }
 
 // ---------- Backend dispatcher ----------
@@ -975,7 +1256,7 @@ fn generate_backend(config: &ProjectConfig) -> Vec<String> {
         }
         _ => {
             println!(
-                "Backend combination ({:?}, {:?}) isn't built yet — captured in config only.",
+                "⚠️  Backend combination ({:?}, {:?}) isn't built yet — captured in config only.",
                 language, framework
             );
             vec![]
