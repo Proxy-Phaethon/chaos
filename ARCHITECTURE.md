@@ -7,6 +7,13 @@ framework, etc.) needs to follow to plug into the system correctly.
 This is a living document — update it whenever the generation system
 changes shape, not just when new features are added.
 
+**Audience note:** Chaos is built for developers who already know their
+stack — it assumes familiarity with the frameworks/tools it scaffolds,
+and doesn't attempt to explain them. Release 1 scope is web development
+only; other platforms (mobile, desktop, games) are planned as separate
+future release tracks with their own decision trees, not extensions of
+this one.
+
 **Status:** the `BuildPlan` pattern is proven for frontend features
 (Tailwind, Bootstrap, Sass, plain CSS, JS). Backend generation spans
 eight language/framework combinations across two distinct patterns (see
@@ -15,7 +22,11 @@ dependencies-declined edge case have been tested end to end** as of the
 last build session. One real bug was found and fixed during this pass
 (see the `require_tool` section below) — everything else worked as
 designed on first test. `chaos write` (the syntax translation layer) is
-still unbuilt.
+still unbuilt. The desktop GUI shell has been dropped from the plan
+entirely — Chaos is CLI-only, meant to run inside whatever IDE's
+integrated terminal the developer already uses. A VS Code extension is
+under consideration for later, as an addition on top of the CLI, not a
+replacement for it.
 
 ---
 
@@ -202,7 +213,63 @@ before building paths to executables inside a working directory you're
 also passing to `.current_dir(...)`. Any new backend integration
 following this pattern should do the same.
 
-## Known limitations / open questions
+## Planned: pre-flight / post-flow questions (not yet built)
+
+The current question flow is fully linear — every question is asked in
+a fixed order, and later questions can only branch based on *earlier*
+answers (e.g. backend framework choices depend on the backend language
+already picked). This breaks down once the option list grows to include
+choices that depend on information from a *different, unrelated* branch
+— for example, offering tRPC as a frontend data-fetching option only
+makes sense if the backend is *also* TypeScript, but frontend questions
+are asked before the backend branch in the current flow.
+
+**Planned fix — split question-asking into three phases instead of one
+linear pass:**
+
+1. **Pre-flight phase** — a small number of global, stack-wide questions
+   asked *before* the main branching tree starts (e.g. "Will your
+   frontend be TypeScript?", "Will your backend be TypeScript?"). These
+   exist purely to make information available early enough for
+   later branches to use it, even though the branches themselves come
+   later.
+2. **Main flow** — the existing linear branch-by-branch flow, largely
+   unchanged, but now able to reference pre-flight answers when deciding
+   what to offer (e.g. only show tRPC as a data-fetching option if both
+   pre-flight TypeScript answers were yes).
+3. **Post-flow phase** — a final pass, after the entire main flow
+   completes, that offers additional options which only make sense in
+   hindsight of choices made *later* in the flow than where they'd
+   naturally be asked (e.g. "You picked Supabase as your database
+   provider — want to use Supabase Auth?", where auth is conceptually
+   asked before database provider in the main flow).
+
+**This is a genuine gap in the current architecture, not yet
+implemented.** `ProjectConfig` and the question flow in `run_initialize`
+would both need restructuring to support this — likely `ProjectConfig`
+gains a few pre-flight fields set before the main match/if chain runs,
+and a new post-flow function runs after `generate_backend`/frontend
+generation to offer additional, hindsight-dependent contributions to the
+build plan.
+
+**Two known options were dropped from consideration entirely** rather
+than solved by this pattern, since they weren't actually timing
+problems: **Astro** (framework-agnostic, doesn't fit a single-framework
+slot at all) and **PocketBase** (a full alternative backend, not really
+an auth provider). Both excluded from Release 1's scope. Users needing
+either can use the planned `chaos edit` command (see below) to
+hand-configure things Chaos doesn't offer directly.
+
+## Planned: `chaos edit` (fifth command, not yet built)
+
+A new command planned alongside `chaos write`/`chaos end`: lets a user
+modify an already-initialized project's captured specs after the fact —
+changing earlier answers, or adding custom/unlisted options entirely
+outside what `chaos initialize`'s menus offer (e.g. Astro, PocketBase,
+or anything else not in the standard list). Not yet designed in detail;
+noted here so it isn't lost before `chaos write` work begins.
+
+
 
 - **Windows paths are unhandled.** `venv/bin/pip` and `venv/bin/django-admin`
   are Mac/Linux paths; Windows uses `venv\Scripts\pip.exe`. Not an issue
@@ -212,11 +279,6 @@ following this pattern should do the same.
   (e.g. two libraries both wanting to modify `package.json`). This hasn't
   come up yet since only one frontend feature (Tailwind) writes one
   currently.
-- **Untested as of this writing:** Fastify, NestJS, Flask, Go/Gin, Rails,
-  Laravel, Bootstrap, Sass. Two specific uncertainties flagged before
-  testing began: whether `nest new .` and `rails new .` actually accept
-  `.` (current directory) as their target, or insist on a fresh named
-  subfolder — if either fails, check this first.
 - Bootstrap's generated HTML links directly to
   `node_modules/bootstrap/dist/css/bootstrap.min.css` rather than a
   properly bundled/copied file. Works for local dev via `chaos run`
