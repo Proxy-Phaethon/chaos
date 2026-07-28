@@ -25,14 +25,28 @@ Chaos is a command-line tool that removes the redundancy of modern
 programming — without generative AI, and without hiding the architecture
 from you.
 
-Building even a simple website today means juggling HTML, CSS, JavaScript,
-npm, frameworks, folder conventions, and boilerplate that has nothing to do
-with the actual idea you're trying to express. Chaos collapses that ceremony
-into a single, minimal syntax that translates directly into clean,
-real, editable code — in whatever language the target requires.
+Built for developers who already know their stack. Chaos doesn't teach
+you HTML or explain what an ORM is — it exists so you stop retyping the
+same boilerplate, wiring, and setup ceremony you already know by heart,
+every single time you start something new.
+
+Chaos runs entirely from your terminal — inside whatever IDE you already
+use (VS Code, JetBrains, Neovim, whatever). No separate app, no GUI to
+learn. A VS Code extension is under consideration for later, but the CLI
+itself is, and will remain, the primary way to use Chaos.
 
 You still design the system. You still own the logic. Chaos just refuses
 to make you type the same fifty characters of setup to say one simple thing.
+
+## Roadmap: Release Tracks
+
+Chaos v1 is scoped to **web development only**. Later releases are
+planned as separate tracks, each with their own decision tree of
+languages/frameworks/tools, once web dev is solid:
+
+- **Release 1 (current): Web Development**
+- Release 2+: iOS, Android, Desktop apps, Video games — each a distinct
+  toolchain, deliberately not attempted until Release 1 is mature
 
 ## Philosophy
 
@@ -55,14 +69,19 @@ project (yes, all the way to a PhD, eventually). Right now:
 - [x] File/folder generation from captured config
 - [x] `.gitignore` auto-generation per stack
 - [x] Dependency installation (npm + pip, real framework scaffolding via
-      `django-admin` / `express-generator`, etc.)
+      `django-admin` / `express-generator`, and 6 more backend paths)
 - [ ] Live chaos-syntax translation (`chaos write`)
 - [ ] Local dev server (`chaos run`)
-- [ ] Terminal-styled desktop GUI
+- [ ] `chaos edit` — a planned fifth command, to modify an already-
+      initialized project's specs after the fact, including adding
+      custom/unlisted options `chaos initialize` doesn't offer directly
+- [ ] VS Code extension (under consideration, not committed) — syntax
+      highlighting / editor integration on top of the CLI, not a
+      replacement for it
 
-`chaos initialize` is feature-complete for both v1 project types as of the
-last build session — the remaining work is the syntax translation layer
-itself (`chaos write`), which is the real core of the project.
+`chaos initialize` is feature-complete for Release 1's core stacks as of
+the last build session — the remaining work is the syntax translation
+layer itself (`chaos write`), which is the real core of the project.
 
 ## Commands (v1 scope)
 
