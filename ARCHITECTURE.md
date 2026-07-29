@@ -1,6 +1,6 @@
 # Chaos — Architecture Notes
 
-Currently testing the new additions.
+Update pending as of 29th July, 2026.
 
 This document explains how `chaos initialize` generates projects, and the
 rules any new "feature" (a styling option, a JS library, a backend
