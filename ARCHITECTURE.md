@@ -335,3 +335,7 @@ noted here so it isn't lost before `chaos write` work begins.
   properly bundled/copied file. Works for local dev via `chaos run`
   later, but isn't how Bootstrap would be referenced in a real
   production build — worth revisiting once `chaos run` exists.
+
+Side Notes: I feel like I've abandoned the scope of the original V1, but oh well. I think I want this thing to 
+be, like, perfectly usable for a web developer completely, and v2 to do the same for an iOS developer, and so on.
+I've been thinking about the syntax to be added, and I keep getting drawn to simplified code that still RESEMBLES code rather than just plain english. Like if-else statements but it actually makes sense, you know? But is still enough to account for everything it is 'cutting down on'.
