@@ -21,8 +21,6 @@
 
 # Chaos
 
-> A semantic software engineering engine.
-
 Chaos is an experimental project exploring a language-independent representation of software.
 
 Rather than treating programming languages as the source of truth, Chaos treats them as *targets*. Projects and code are first represented as semantic entities with defined relationships, dependencies, and rules. Those semantic models can then be generated, translated, validated, or modified through different interfaces.
@@ -35,7 +33,7 @@ The long-term goal is to simplify software development by separating **intent** 
 
 Chaos is currently in active development.
 
-Version 1 focuses on building the semantic engine and the project initialisation pipeline.
+Version 1 focuses on building the semantic engine and the project initialisation pipeline with explicit use for Web Developers.
 
 Current priorities include:
 
@@ -70,7 +68,7 @@ The engine understands these concepts rather than individual programming languag
 
 Creates a new project by constructing a semantic Project Manifest through a dependency-driven question system.
 
-### `chaos write`
+### `chaos write/end`
 
 Creates semantic source code that can later be translated into supported programming languages.
 
@@ -81,13 +79,6 @@ Modifies an existing Project Manifest while preserving compatible project struct
 ### `chaos run`
 
 Executes a project using its semantic configuration rather than individual framework commands.
-
-### Future Commands
-
-- `chaos translate`
-- `chaos doctor`
-- `chaos build`
-- `chaos test`
 
 ---
 
