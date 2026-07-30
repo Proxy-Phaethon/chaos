@@ -19,103 +19,111 @@
 
 ---
 
-## What is Chaos?
+# Chaos
 
-Chaos is a command-line tool that removes the redundancy of modern
-programming — without generative AI, and without hiding the architecture
-from you.
+> A semantic software engineering engine.
 
-Built for developers who already know their stack. Chaos doesn't teach
-you HTML or explain what an ORM is — it exists so you stop retyping the
-same boilerplate, wiring, and setup ceremony you already know by heart,
-every single time you start something new.
+Chaos is an experimental project exploring a language-independent representation of software.
 
-Chaos runs entirely from your terminal — inside whatever IDE you already
-use (VS Code, JetBrains, Neovim, whatever). No separate app, no GUI to
-learn. A VS Code extension is under consideration for later, but the CLI
-itself is, and will remain, the primary way to use Chaos.
+Rather than treating programming languages as the source of truth, Chaos treats them as *targets*. Projects and code are first represented as semantic entities with defined relationships, dependencies, and rules. Those semantic models can then be generated, translated, validated, or modified through different interfaces.
 
-You still design the system. You still own the logic. Chaos just refuses
-to make you type the same fifty characters of setup to say one simple thing.
+The long-term goal is to simplify software development by separating **intent** from **implementation**.
 
-## Roadmap: Release Tracks
+---
 
-Chaos v1 is scoped to **web development only**. Later releases are
-planned as separate tracks, each with their own decision tree of
-languages/frameworks/tools, once web dev is solid:
+## Current Status
 
-- **Release 1 (current): Web Development**
-- Release 2+: iOS, Android, Desktop apps, Video games — each a distinct
-  toolchain, deliberately not attempted until Release 1 is mature
+Chaos is currently in active development.
+
+Version 1 focuses on building the semantic engine and the project initialisation pipeline.
+
+Current priorities include:
+
+- Semantic architecture
+- Project initialisation
+- Manifest system
+- Dependency engine
+- Validation engine
+- Project generation
+
+Language translation and the Chaos programming language will be introduced after the semantic foundation is complete.
+
+---
 
 ## Philosophy
 
-- **No generative AI.** Chaos is a deterministic translator, not a
-  predictor. What you type is exactly what gets built — every time.
-- **Real, inspectable output.** Chaos never hides code behind a black box.
-  Every generated file is plain HTML/CSS/JS/Python/etc — open it, read it,
-  edit it directly if you want.
-- **One syntax, many targets.** The same chaos verb compiles differently
-  depending on what you're building, but always cuts the ceremony down to
-  the actual idea being expressed.
+Chaos is built around a small number of reusable concepts.
 
-## Status
+- Everything is an entity.
+- Entities have properties.
+- Entities are connected by relationships.
+- Dependencies determine validity.
+- Rules determine behaviour.
 
-Chaos is early — currently in active development as a personal long-term
-project (yes, all the way to a PhD, eventually). Right now:
+The engine understands these concepts rather than individual programming languages.
 
-- [x] Core CLI with four commands: `initialize`, `write`, `end`, `run`
-- [x] Interactive project scaffolding flow (`chaos initialize`)
-- [x] File/folder generation from captured config
-- [x] `.gitignore` auto-generation per stack
-- [x] Dependency installation (npm + pip, real framework scaffolding via
-      `django-admin` / `express-generator`, and 6 more backend paths)
-- [ ] Live chaos-syntax translation (`chaos write`)
-- [ ] Local dev server (`chaos run`)
-- [ ] `chaos edit` — a planned fifth command, to modify an already-
-      initialized project's specs after the fact, including adding
-      custom/unlisted options `chaos initialize` doesn't offer directly
-- [ ] VS Code extension (under consideration, not committed) — syntax
-      highlighting / editor integration on top of the CLI, not a
-      replacement for it
+---
 
-`chaos initialize` is feature-complete for Release 1's core stacks as of
-the last build session — the remaining work is the syntax translation
-layer itself (`chaos write`), which is the real core of the project.
+## Planned Commands
 
-## Commands (v1 scope)
+### `chaos initialize`
 
-| Command | Purpose |
-|---|---|
-| `chaos initialize` | Scaffolds a new project through a guided Q&A |
-| `chaos write` | Enters live mode — chaos syntax translates into real code as you type |
-| `chaos end` | Exits live mode, back to a normal terminal |
-| `chaos run` | Serves the project locally for testing |
+Creates a new project by constructing a semantic Project Manifest through a dependency-driven question system.
 
-## Supported stacks (v1)
+### `chaos write`
 
-- **Static Webpage** — HTML, CSS (Tailwind, Plain CSS, Bootstrap, or Sass/SCSS), optional JavaScript
-- **Basic Webapp** — frontend as above, plus a real backend:
+Creates semantic source code that can later be translated into supported programming languages.
 
-| Language | Frameworks | Scaffolding method |
-|---|---|---|
-| Python | Django, Flask | Django via `django-admin`; Flask hand-authored (no official scaffolder exists) |
-| TypeScript | Express, Fastify, NestJS | Each framework's own official CLI generator |
-| Ruby | Rails | `rails new` |
-| PHP | Laravel | `composer create-project laravel/laravel` |
-| Go | Gin | Hand-authored — [Gin](https://github.com/gin-gonic/gin) is an open source community framework, credited in the generated code |
+### `chaos edit`
 
-Every backend checks that its required toolchain (Python, Node, Ruby, PHP,
-Go, Composer) is actually installed before attempting to scaffold, and
-prints a clear install link if it's missing, rather than failing silently
-or crashing.
+Modifies an existing Project Manifest while preserving compatible project structure and translating affected implementation where possible.
 
-All CSS options and all eight backend paths have been tested end to
-end as of the last build session, including the "dependencies declined"
-and "tool not installed" edge cases.
+### `chaos run`
 
-More languages, frameworks, and project types are planned — the system is
-built so adding them is a data change, not a rewrite.
+Executes a project using its semantic configuration rather than individual framework commands.
+
+### Future Commands
+
+- `chaos translate`
+- `chaos doctor`
+- `chaos build`
+- `chaos test`
+
+---
+
+## Roadmap
+
+### Version 1
+
+- Semantic engine
+- Project manifest
+- Dependency resolver
+- Validator
+- `chaos initialize`
+- Project generation
+
+### Version 1.5
+
+- `chaos edit`
+- Project migration
+- Manifest upgrades
+
+### Version 2
+
+- Chaos language
+- Semantic parser
+- Language generators
+- Multi-language translation
+
+---
+
+## Project Status
+
+Chaos is an experimental research project.
+
+The architecture is expected to evolve significantly as the semantic model matures.
+
+Early versions prioritise correctness, extensibility, and architectural clarity over feature count.
 
 ## Built with
 
