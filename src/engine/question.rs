@@ -22,6 +22,30 @@ impl QuestionId {
     }
 }
 
+/// The kind of answer a `Question` expects.
+///
+/// Every `Question` explicitly declares its `AnswerKind` so that later
+/// stages of the engine (normalization, validation) know how to treat the
+/// answer without needing to infer it from other fields, such as whether
+/// `options` happens to be empty.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnswerKind {
+    /// Free-form text with no further structure implied.
+    Text,
+    /// Text intended to become a canonical identifier (e.g. a project name).
+    Identifier,
+    /// A yes/no answer.
+    Boolean,
+    /// A selection among the question's `options`.
+    Choice,
+    // TODO: Number
+    // TODO: Path
+    // TODO: File
+    // TODO: Directory
+    // TODO: Version
+    // TODO: Enum (a closed set of values not sourced from `options`)
+}
+
 /// A single selectable option offered by a `Question`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuestionOption {
@@ -88,11 +112,17 @@ pub struct Question {
     pub id: QuestionId,
     pub prompt: String,
     pub description: Option<String>,
+    pub answer_kind: AnswerKind,
     pub options: Vec<QuestionOption>,
     pub default: Option<Value>,
     pub dependencies: Vec<Dependency>,
-    pub destination: Field,
+    /// Where this answer belongs inside the `ProjectManifest`. This is a
+    /// semantic destination, not a generation target.
+    pub manifest_field: Field,
     pub effects: Vec<Effect>,
+    // TODO: free-form (non-option-list) questions, such as the project name
+    // prompt, are not yet represented distinctly from selectable ones
+    // beyond their `AnswerKind`.
 }
 
 impl Question {
@@ -101,20 +131,22 @@ impl Question {
         id: QuestionId,
         prompt: impl Into<String>,
         description: Option<String>,
+        answer_kind: AnswerKind,
         options: Vec<QuestionOption>,
         default: Option<Value>,
         dependencies: Vec<Dependency>,
-        destination: Field,
+        manifest_field: Field,
         effects: Vec<Effect>,
     ) -> Self {
         Self {
             id,
             prompt: prompt.into(),
             description,
+            answer_kind,
             options,
             default,
             dependencies,
-            destination,
+            manifest_field,
             effects,
         }
     }
