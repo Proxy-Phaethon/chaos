@@ -8,9 +8,9 @@
 
 `chaos initialize` is the project construction interface of the Chaos Engine.
 
-Its responsibility is to construct a valid semantic project model from user input. Rather than generating files directly, `chaos initialize` gathers information about the intended project, validates the resulting configuration, constructs a Project Manifest, and invokes the generation pipeline.
+Its responsibility is to construct a valid semantic representation of a project from user input. Rather than generating implementation files directly, the command gathers project requirements, validates each answer, constructs a semantic project model, produces a `ProjectManifest`, and invokes the generation pipeline.
 
-The command contains no language-specific behaviour beyond presenting available options to the user. All architectural decisions are represented as semantic entities and relationships within the Project Manifest.
+The command itself contains no language-specific logic. All architectural decisions are represented as semantic entities, dependencies, and relationships managed by the Chaos Engine.
 
 ---
 
@@ -18,10 +18,11 @@ The command contains no language-specific behaviour beyond presenting available 
 
 This specification defines:
 
-* The purpose of project initialisation.
-* The sequence of user interaction.
-* The dependency graph governing available questions.
-* Validation rules.
+* The purpose of project initialization.
+* The semantic initialization workflow.
+* The dependency graph governing question availability.
+* Input normalization.
+* Semantic validation.
 * Manifest construction.
 * Project generation.
 
@@ -29,9 +30,10 @@ This specification does **not** define:
 
 * CLI implementation.
 * Parser implementation.
-* Language translation.
+* Syntax translation.
 * Runtime behaviour.
 * Template implementation.
+* Filesystem implementation.
 
 These topics are specified independently.
 
@@ -39,84 +41,110 @@ These topics are specified independently.
 
 # 3. Objectives
 
-The initialisation process shall satisfy the following objectives.
+The initialization process shall satisfy the following objectives.
 
-1. Construct a valid Project Manifest.
+1. Construct a valid `ProjectManifest`.
 2. Collect only information required to describe the project.
 3. Present only contextually valid questions.
 4. Prevent invalid project configurations.
 5. Produce deterministic output from identical input.
 6. Remain independent of implementation language.
-7. Provide sufficient information for subsequent Chaos commands.
+7. Provide sufficient semantic information for subsequent Chaos commands.
 
 ---
 
-# 4. Initialisation Pipeline
+# 4. Core Principles
 
-Project construction follows the sequence below.
+Each component of the initialization system has exactly one responsibility.
+
+| Component       | Responsibility                                                   |
+| --------------- | ---------------------------------------------------------------- |
+| Registry        | Defines semantic questions.                                      |
+| Resolver        | Determines which questions are currently available.              |
+| Normalizer      | Converts raw user input into canonical values.                   |
+| Validator       | Determines whether a normalized answer is semantically valid.    |
+| SemanticState   | Represents the current knowledge gathered during initialization. |
+| ProjectManifest | Represents the completed semantic description of the project.    |
+| Generator       | Produces implementation-specific project files.                  |
+
+No component should perform the responsibilities of another.
+
+---
+
+# 5. Initialization Pipeline
+
+Project initialization follows the semantic workflow below.
 
 ```text
-User Input
-      │
-      ▼
-Question Engine
-      │
-      ▼
-Dependency Resolution
-      │
-      ▼
-Validation
-      │
-      ▼
-Project Manifest
-      │
-      ▼
-Generation Pipeline
-      │
-      ▼
-Completed Project
+Registry
+        │
+        ▼
+Chaos Engine
+        │
+        ▼
+Resolver
+        │
+        ▼
+Next Available Question
+        │
+        ▼
+CLI Prompt
+        │
+        ▼
+Raw User Answer
+        │
+        ▼
+Normalizer
+        │
+        ▼
+Validator
+        │
+        ▼
+SemanticState
+        │
+        └──────────────┐
+                       │
+                       ▼
+                  Resolver
 ```
 
-Each stage has a single responsibility.
+The process repeats until no unanswered questions remain.
 
-The Question Engine gathers information.
+The completed `SemanticState` is converted into a `ProjectManifest`.
 
-The Dependency Resolver determines which questions are applicable.
-
-The Validator confirms the resulting project is internally consistent.
-
-The Manifest records the semantic state of the project.
-
-The Generation Pipeline converts the semantic model into implementation-specific files.
+The `ProjectManifest` becomes the exclusive input to the Generation Pipeline.
 
 ---
 
-# 5. Input Model
+# 6. Input Model
 
-Project initialisation is performed through a sequence of semantic questions.
+Project initialization consists of a sequence of semantic questions.
 
 Each question defines:
 
 * Identifier
 * Purpose
 * Prompt
+* Answer type
 * Available options
 * Dependencies
 * Validation
 * Manifest mapping
-* Side effects
+* Effects
 
-Questions shall never contain project logic.
+Questions are passive data structures.
+
+They never contain project logic.
 
 All project logic is evaluated by the Chaos Engine.
 
 ---
 
-# 6. Question Flow
+# 7. Question Flow
 
-The following sequence represents the canonical initialisation flow for Version 1.
+The canonical Version 1 dependency tree is:
 
-```
+```text
 Project Name
 │
 ├── Frontend?
@@ -131,10 +159,11 @@ Project Name
 │     │
 │     ├── Backend Language
 │     ├── Backend Framework
+│     │
 │     ├── Database?
 │     │      │
 │     │      ├── Database Engine
-│     │      └── Database Layer
+│     │      └── ORM
 │     │
 │     ├── Authentication
 │     └── API Style
@@ -144,115 +173,13 @@ Project Name
 └── Testing
 ```
 
-Questions are presented only when their dependency conditions are satisfied.
+Questions are presented only when every dependency evaluates to true.
 
 ---
 
-# 7. Question Definitions
+# 8. Dependency Resolution
 
-Each question shall conform to the following structure.
-
----
-
-## Question Identifier
-
-A globally unique identifier.
-
-Example
-
-```
-backend.language
-```
-
----
-
-## Purpose
-
-Describes the semantic role of the question.
-
-Example
-
-Select the implementation language of the backend application.
-
----
-
-## Prompt
-
-The user-facing prompt.
-
-Example
-
-```
-Select backend language
-```
-
----
-
-## Options
-
-The permitted responses.
-
-Example
-
-* Python
-* Go
-* Rust
-* Node.js
-* PHP
-* Java
-* C#
-
----
-
-## Dependencies
-
-Conditions that must evaluate to true before the question is presented.
-
-Example
-
-```
-Backend = Yes
-```
-
----
-
-## Validation
-
-Rules governing acceptable responses.
-
-Example
-
-The selected language must exist within the supported language registry.
-
----
-
-## Manifest Mapping
-
-Destination within the Project Manifest.
-
-Example
-
-```
-manifest.backend.language
-```
-
----
-
-## Effects
-
-Semantic consequences of the selected option.
-
-Example
-
-Selecting a backend language determines the available backend frameworks.
-
----
-
-# 8. Dependency Graph
-
-The Question Engine shall evaluate dependencies before presenting each question.
-
-Dependencies are evaluated dynamically throughout initialisation.
+The Resolver evaluates dependencies dynamically throughout initialization.
 
 Examples include:
 
@@ -285,7 +212,7 @@ Database = Yes
 ```
 
 ```
-Database Layer
+ORM
 
 Requires
 
@@ -296,41 +223,79 @@ Database = Yes
 Backend Framework selected
 ```
 
-Questions whose dependencies evaluate to false shall not be presented.
+Questions whose dependencies evaluate to false are not presented.
+
+Dependency resolution is deterministic and side-effect free.
 
 ---
 
-# 9. Validation
+# 9. Input Normalization
 
-Validation occurs after all required questions have been answered.
+Raw user input is normalized before validation.
 
-Validation ensures that the resulting semantic model is internally consistent.
+Normalization may include:
 
-Validation includes, but is not limited to:
+* Whitespace trimming.
+* Identifier sanitization.
+* Case normalization.
+* Boolean alias resolution.
+* Canonical option matching.
 
-* At least one application layer must exist.
-* Selected framework must support the selected language.
-* Selected database layer must support the selected database engine.
-* Required values must be present.
-* Unsupported combinations must be rejected.
+Normalization never rejects input.
 
-Validation failure terminates project generation.
-
-No files shall be generated for an invalid project.
+It only converts input into canonical semantic values.
 
 ---
 
-# 10. Project Manifest
+# 10. Validation
 
-Successful initialisation produces a Project Manifest.
+Validation occurs immediately after normalization for each answer.
 
-The Manifest represents the complete semantic state of the project.
+Validation determines whether a normalized answer satisfies the requirements of its corresponding question.
 
-The Manifest is the authoritative representation of the project and shall be used by all subsequent Chaos commands.
+Examples include:
+
+* Identifiers must not be empty.
+* Boolean questions must produce boolean values.
+* Choice questions must match one of the declared options.
+* Required answers must be present.
+
+When initialization is complete, a final manifest validation confirms the overall project configuration is internally consistent.
+
+Examples include:
+
+* At least one application layer exists.
+* Selected frameworks support the selected language.
+* ORM supports the selected framework.
+* Unsupported combinations are rejected.
+
+No project generation occurs if validation fails.
+
+---
+
+# 11. Semantic State
+
+During initialization, all accepted answers are stored in the `SemanticState`.
+
+The `SemanticState` represents the current semantic knowledge of the project.
+
+It exists only during initialization.
+
+It is independent of the `ProjectManifest`.
+
+The Resolver evaluates dependencies exclusively against the current `SemanticState`.
+
+---
+
+# 12. Project Manifest
+
+Successful initialization culminates in the construction of a `ProjectManifest`.
+
+The manifest is the authoritative semantic representation of the completed project.
 
 Typical sections include:
 
-```
+```text
 Project
 
 Frontend
@@ -344,29 +309,28 @@ Tooling
 State
 ```
 
-Implementation-specific configuration files are generated from the Manifest.
+All subsequent Chaos commands operate from the manifest rather than implementation-specific files.
 
-The Manifest is never generated from implementation-specific files.
+The manifest is never reconstructed from generated source code.
 
 ---
 
-# 11. Generation Pipeline
+# 13. Generation Pipeline
 
-Following successful validation, the Generation Pipeline performs the following operations.
+Following successful validation, the Generation Pipeline performs the following high-level stages.
 
 1. Select implementation templates.
 2. Construct project directory structure.
 3. Generate implementation files.
 4. Generate configuration files.
-5. Install project dependencies.
-6. Initialise optional tooling.
-7. Produce project summary.
+5. Initialize selected tooling.
+6. Produce project summary.
 
-Generation consumes the Project Manifest exclusively.
+Generation consumes the `ProjectManifest` exclusively.
 
 ---
 
-# 12. Default Behaviour
+# 14. Default Behaviour
 
 Where a question defines a default value, selecting no option shall produce the documented default.
 
@@ -395,51 +359,53 @@ Defaults shall remain deterministic across identical Chaos versions.
 
 ---
 
-# 13. Failure Conditions
+# 15. Failure Conditions
 
-Project generation shall terminate under any of the following conditions.
+Initialization shall terminate under any of the following conditions.
 
 * Neither Frontend nor Backend selected.
 * Unsupported dependency combination.
-* Invalid user input.
-* Existing project cannot be safely overwritten.
+* Invalid normalized answer.
 * Manifest validation failure.
+* Existing project cannot be safely overwritten.
 * Generation pipeline failure.
 
-Where practical, generation shall terminate before filesystem modification.
+Where practical, generation should terminate before filesystem modification.
 
-Where generation fails after modification has begun, the implementation should attempt rollback.
+If generation fails after modification has begun, the implementation should attempt rollback.
 
 ---
 
-# 14. Extensibility
+# 16. Extensibility
 
-The initialisation process is designed to evolve through extension rather than modification.
+The initialization system is designed to evolve through extension rather than modification.
 
 Future versions may introduce:
 
-* Additional project categories.
 * Mobile application support.
 * Desktop application support.
-* Game development support.
+* Game development.
 * Infrastructure provisioning.
 * CI/CD configuration.
-* Plugin-defined question sets.
+* Plugin-defined question registries.
+* Custom project archetypes.
 
-Extensions shall integrate through the existing dependency and validation systems.
+Extensions shall integrate through the existing Registry, Resolver, Normalizer, Validator, and Manifest systems.
 
-No extension should require changes to the fundamental architecture of project initialisation.
+No extension should require changes to the fundamental initialization architecture.
 
 ---
 
-# 15. Conformance
+# 17. Conformance
 
 An implementation conforms to this specification if it:
 
 * Presents questions according to the dependency graph.
-* Produces a valid Project Manifest.
+* Normalizes user input consistently.
+* Validates semantic correctness.
+* Produces a valid `ProjectManifest`.
 * Rejects invalid configurations.
 * Generates deterministic output.
 * Maintains semantic equivalence between identical project definitions.
 
-The implementation language, CLI framework, and code organisation are outside the scope of this specification.
+The implementation language, CLI framework, and internal code organization are outside the scope of this specification.

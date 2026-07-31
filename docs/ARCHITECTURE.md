@@ -166,35 +166,43 @@ It only understands entities and their relationships.
 
 # 5. Engine Architecture
 
-```
-Input
-
-↓
-
-Entity Registry
-
-↓
-
-Dependency Resolver
-
-↓
-
-Rule Engine
-
-↓
-
-Validator
-
-↓
-
-Manifest
-
-↓
-
-Output Pipeline
-```
-
-The Output Pipeline changes depending on the command being executed.
+Chaos
+│
+├── CLI Layer
+│     User interaction
+│     Command dispatch
+│
+├── Engine Layer
+│     Orchestrates initialization
+│     Maintains semantic state
+│
+│     ├── Registry
+│     │     Question definitions
+│     │
+│     ├── Dependency
+│     │     Dependency language
+│     │
+│     ├── Resolver
+│     │     Determines available questions
+│     │
+│     ├── Normalizer
+│     │     Converts raw input into canonical values
+│     │
+│     ├── Validator
+│     │     Confirms semantic validity
+│     │
+│     └── SemanticState
+│           Current knowledge during initialization
+│
+├── Manifest Layer
+│     ProjectManifest
+│     FrontendManifest
+│     BackendManifest
+│     DatabaseManifest
+│     ToolingManifest
+│
+└── Generator Layer
+      (planned)
 
 ---
 
