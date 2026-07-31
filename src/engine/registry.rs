@@ -9,15 +9,15 @@
 //! The current `Field` enum (`engine::dependency`) does not yet define
 //! variants for the project name, frontend routing, frontend styling, or
 //! frontend state management. Those Version 1 tree nodes cannot be given a
-//! valid `destination` without inventing a `Field` variant, which this file
-//! is not permitted to do. They are intentionally omitted below.
+//! valid `manifest_field` without inventing a `Field` variant, which this
+//! file is not permitted to do. They are intentionally omitted below.
 //!
 //! TODO: add `Field::ProjectName`, `Field::Routing`, `Field::Styling`, and
 //! `Field::StateManagement` to `engine::dependency`, then add the
 //! corresponding questions here.
 
 use super::dependency::{Condition, Dependency, Field, Value};
-use super::question::{Effect, Question, QuestionId, QuestionOption};
+use super::question::{AnswerKind, Effect, Question, QuestionId, QuestionOption};
 
 fn text_opt(value: &str, label: &str) -> QuestionOption {
     QuestionOption::new(Value::Text(value.to_string()), label)
@@ -40,6 +40,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("frontend.enabled"),
             "Will this project have a frontend?",
             None,
+            AnswerKind::Boolean,
             vec![bool_opt(true, "Yes"), bool_opt(false, "No")],
             Some(Value::Bool(true)),
             vec![],
@@ -56,6 +57,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("frontend.language"),
             "Which frontend language would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("TypeScript", "TypeScript"), text_opt("JavaScript", "JavaScript")],
             Some(Value::Text("TypeScript".to_string())),
             vec![Dependency::new(Condition::Enabled(Field::FrontendEnabled))],
@@ -68,6 +70,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("frontend.framework"),
             "Which frontend framework would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("React", "React"),
                 text_opt("Vue", "Vue"),
@@ -87,6 +90,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.enabled"),
             "Will this project have a backend?",
             None,
+            AnswerKind::Boolean,
             vec![bool_opt(true, "Yes"), bool_opt(false, "No")],
             Some(Value::Bool(true)),
             vec![],
@@ -103,6 +107,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.language"),
             "Which backend language would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("Python", "Python"),
                 text_opt("Go", "Go"),
@@ -125,6 +130,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.framework.python"),
             "Which backend framework would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Django", "Django"), text_opt("FastAPI", "FastAPI"), text_opt("Flask", "Flask")],
             Some(Value::Text("Django".to_string())),
             vec![Dependency::new(equals(Field::BackendLanguage, "Python"))],
@@ -135,6 +141,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.framework.go"),
             "Which backend framework would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Gin", "Gin"), text_opt("Echo", "Echo"), text_opt("Fiber", "Fiber")],
             Some(Value::Text("Gin".to_string())),
             vec![Dependency::new(equals(Field::BackendLanguage, "Go"))],
@@ -145,6 +152,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.framework.rust"),
             "Which backend framework would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Axum", "Axum"), text_opt("Actix Web", "Actix Web"), text_opt("Rocket", "Rocket")],
             Some(Value::Text("Axum".to_string())),
             vec![Dependency::new(equals(Field::BackendLanguage, "Rust"))],
@@ -155,6 +163,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.framework.nodejs"),
             "Which backend framework would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Express", "Express"), text_opt("Fastify", "Fastify"), text_opt("NestJS", "NestJS")],
             Some(Value::Text("Express".to_string())),
             vec![Dependency::new(equals(Field::BackendLanguage, "Node.js"))],
@@ -165,6 +174,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.framework.php"),
             "Which backend framework would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Laravel", "Laravel"), text_opt("Symfony", "Symfony")],
             Some(Value::Text("Laravel".to_string())),
             vec![Dependency::new(equals(Field::BackendLanguage, "PHP"))],
@@ -175,6 +185,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.framework.java"),
             "Which backend framework would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Spring Boot", "Spring Boot")],
             Some(Value::Text("Spring Boot".to_string())),
             vec![Dependency::new(equals(Field::BackendLanguage, "Java"))],
@@ -185,6 +196,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.framework.csharp"),
             "Which backend framework would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("ASP.NET Core", "ASP.NET Core")],
             Some(Value::Text("ASP.NET Core".to_string())),
             vec![Dependency::new(equals(Field::BackendLanguage, "C#"))],
@@ -197,6 +209,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.enabled"),
             "Would you like a database?",
             None,
+            AnswerKind::Boolean,
             vec![bool_opt(true, "Yes"), bool_opt(false, "No")],
             Some(Value::Bool(false)),
             vec![Dependency::new(Condition::Enabled(Field::BackendEnabled))],
@@ -210,6 +223,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.engine"),
             "Which database engine would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("PostgreSQL", "PostgreSQL"),
                 text_opt("MySQL", "MySQL"),
@@ -229,6 +243,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.orm.python"),
             "Which database layer would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("Django ORM", "Django ORM"),
                 text_opt("SQLAlchemy", "SQLAlchemy"),
@@ -247,6 +262,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.orm.go"),
             "Which database layer would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("GORM", "GORM"),
                 text_opt("Bun", "Bun"),
@@ -265,6 +281,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.orm.rust"),
             "Which database layer would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("SQLx", "SQLx"),
                 text_opt("Diesel", "Diesel"),
@@ -282,6 +299,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.orm.nodejs"),
             "Which database layer would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("Prisma", "Prisma"),
                 text_opt("Drizzle", "Drizzle"),
@@ -304,6 +322,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.orm.php"),
             "Which database layer would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Eloquent", "Eloquent"), text_opt("Doctrine", "Doctrine")],
             Some(Value::Text("Eloquent".to_string())),
             vec![
@@ -317,6 +336,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.orm.java"),
             "Which database layer would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Hibernate", "Hibernate"), text_opt("EclipseLink", "EclipseLink")],
             Some(Value::Text("Hibernate".to_string())),
             vec![
@@ -330,6 +350,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("database.orm.csharp"),
             "Which database layer would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("Entity Framework Core", "Entity Framework Core"), text_opt("Dapper", "Dapper")],
             Some(Value::Text("Entity Framework Core".to_string())),
             vec![
@@ -345,6 +366,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.authentication"),
             "Would you like authentication?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("None", "None"),
                 text_opt("JWT", "JWT"),
@@ -362,6 +384,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("backend.api_style"),
             "Which API style would you like to use?",
             None,
+            AnswerKind::Choice,
             vec![text_opt("REST", "REST"), text_opt("GraphQL", "GraphQL")],
             Some(Value::Text("REST".to_string())),
             vec![Dependency::new(Condition::Enabled(Field::BackendEnabled))],
@@ -376,6 +399,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("tooling.git"),
             "Would you like to initialize a Git repository?",
             None,
+            AnswerKind::Boolean,
             vec![bool_opt(true, "Yes"), bool_opt(false, "No")],
             Some(Value::Bool(true)),
             vec![],
@@ -386,6 +410,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("tooling.docker"),
             "Would you like to use Docker?",
             None,
+            AnswerKind::Boolean,
             vec![bool_opt(true, "Yes"), bool_opt(false, "No")],
             Some(Value::Bool(false)),
             vec![],
@@ -396,6 +421,7 @@ pub fn registry() -> Vec<Question> {
             QuestionId::new("tooling.testing"),
             "Would you like to add testing?",
             None,
+            AnswerKind::Choice,
             vec![
                 text_opt("None", "None"),
                 text_opt("Unit", "Unit"),
