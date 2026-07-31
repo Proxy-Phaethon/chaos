@@ -3,15 +3,17 @@
 //! Normalization sits between raw user input and validation:
 //!
 //! ```text
-//! Question → Raw Answer → Normalizer → Validator → ProjectManifest
+//! Question → RawAnswer → Normalizer → Validator → ProjectManifest
 //! ```
 //!
 //! A normalizer never rejects input — it only performs safe, deterministic
 //! transformations (trimming, case folding, alias resolution, and so on).
 //! Rejecting malformed or semantically invalid input is the responsibility
-//! of the validator, not this module.
+//! of the validator, not this module. Normalization is driven by a
+//! `Question`'s `AnswerKind`, rather than a separate strategy type.
 
 use super::dependency::Value;
+use super::question::AnswerKind;
 
 /// Raw, unprocessed input as received from the user, prior to normalization.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,63 +26,30 @@ impl RawAnswer {
     }
 }
 
-/// A strategy describing how a `RawAnswer` should be transformed into a
-/// canonical `Value`.
+/// Transforms a `RawAnswer` into a canonical `Value` according to an
+/// `AnswerKind`.
 ///
-/// Different questions may require different normalization behavior (a
-/// project name is not normalized the same way as a yes/no answer), so
-/// strategies are represented as distinct variants rather than a single
-/// fixed transformation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum NormalizationStrategy {
-    /// Trims surrounding whitespace and collapses repeated internal
-    /// whitespace, with no other transformation. Suitable for free-form
-    /// text that will later be validated against a fixed set of options.
-    Text,
-
-    /// Converts input into a canonical identifier: trims whitespace, folds
-    /// to a consistent case, and replaces runs of non-alphanumeric
-    /// characters with a single separator. Suitable for project names and
-    /// similar identifiers.
-    Identifier,
-
-    /// Interprets common yes/no aliases (e.g. "y", "yes", "true", "n",
-    /// "no", "false") as a canonical boolean, case-insensitively. Input
-    /// that matches no known alias is left as `false` rather than
-    /// rejected — normalization never rejects input.
-    Boolean,
-
-    /// Matches input against a fixed list of canonical labels,
-    /// case-insensitively and with surrounding whitespace trimmed,
-    /// resolving to the canonical label's own casing when a match is
-    /// found. Input matching no canonical label is passed through as
-    /// trimmed text.
-    CaseInsensitiveMatch(Vec<String>),
-    // TODO: numeric normalization (e.g. parsing integers/versions) is not
-    // yet needed by any Version 1 question.
-    // TODO: locale-aware normalization is not yet specified.
-}
-
-/// Transforms a `RawAnswer` into a canonical `Value` according to a
-/// `NormalizationStrategy`.
-///
-/// This trait exists separately from `NormalizationStrategy` itself so
-/// that future normalization behavior (e.g. composite or question-specific
-/// strategies) can implement it without changing the enum.
+/// This trait exists separately from `AnswerKind` itself so that future
+/// normalization behavior can be implemented without changing the enum in
+/// `engine::question`.
 pub trait Normalizer {
     /// Normalizes a raw answer into a canonical value. Never fails.
-    fn normalize(&self, raw: &RawAnswer) -> Value;
+    ///
+    /// `choices` supplies the canonical labels to match against when `self`
+    /// is `AnswerKind::Choice`; it is ignored for all other kinds. Passing
+    /// an empty slice for a `Choice` answer simply yields no match, which
+    /// falls back to trimmed text — the validator, not this module, is
+    /// responsible for judging whether that is acceptable.
+    fn normalize(&self, raw: &RawAnswer, choices: &[String]) -> Value;
 }
 
-impl Normalizer for NormalizationStrategy {
-    fn normalize(&self, raw: &RawAnswer) -> Value {
+impl Normalizer for AnswerKind {
+    fn normalize(&self, raw: &RawAnswer, choices: &[String]) -> Value {
         match self {
-            NormalizationStrategy::Text => Value::Text(collapse_whitespace(&trim(&raw.0))),
-            NormalizationStrategy::Identifier => Value::Text(to_identifier(&raw.0)),
-            NormalizationStrategy::Boolean => Value::Bool(parse_boolean_alias(&raw.0)),
-            NormalizationStrategy::CaseInsensitiveMatch(canonical_labels) => {
-                Value::Text(match_case_insensitive(&raw.0, canonical_labels))
-            }
+            AnswerKind::Text => Value::Text(collapse_whitespace(&trim(&raw.0))),
+            AnswerKind::Identifier => Value::Text(to_identifier(&raw.0)),
+            AnswerKind::Boolean => normalize_boolean(&raw.0),
+            AnswerKind::Choice => Value::Text(match_case_insensitive(&raw.0, choices)),
         }
     }
 }
@@ -117,16 +86,20 @@ fn to_identifier(input: &str) -> String {
     result.trim_end_matches('-').to_string()
 }
 
-/// Interprets common yes/no aliases, case-insensitively, defaulting to
-/// `false` for unrecognized input rather than rejecting it.
-fn parse_boolean_alias(input: &str) -> bool {
-    match input.trim().to_lowercase().as_str() {
-        "y" | "yes" | "true" | "1" => true,
-        // TODO: unrecognized input silently defaults to false. Whether
-        // this is the correct default for every boolean question, versus
-        // falling back to the question's own default value, is a decision
-        // for the validator/resolver stage, not this module.
-        _ => false,
+/// Interprets common yes/no aliases, case-insensitively.
+///
+/// Recognized aliases normalize to a canonical `Value::Bool`. Unrecognized
+/// input is deliberately **not** coerced into `false` — silently forcing
+/// ambiguous input to a specific boolean would hide the ambiguity from the
+/// validator. Instead, unrecognized input normalizes to trimmed,
+/// lowercased `Value::Text`, letting the validator decide whether it is
+/// acceptable.
+fn normalize_boolean(input: &str) -> Value {
+    let trimmed_lower = input.trim().to_lowercase();
+    match trimmed_lower.as_str() {
+        "y" | "yes" | "true" | "1" => Value::Bool(true),
+        "n" | "no" | "false" | "0" => Value::Bool(false),
+        _ => Value::Text(trimmed_lower),
     }
 }
 
