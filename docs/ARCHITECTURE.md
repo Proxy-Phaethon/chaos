@@ -10,17 +10,19 @@ Chaos is a semantic software engineering engine.
 
 Its command-line interface, language, project tools, and translators are all interfaces for constructing, modifying, validating, and translating a language-independent semantic model.
 
-Chaos is **not** built around Rust, Python, Go, or any other programming language. Those languages are outputs. The semantic model is the source of truth.
+Chaos is not built around Rust, Python, Go, or any other programming language. Those languages are outputs.
+
+The semantic model is the source of truth.
 
 ---
 
 # 2. Design Philosophy
 
-Chaos is built on a small number of reusable concepts.
+Chaos is built around a small number of reusable semantic concepts.
 
-Every feature should be decomposed into simple semantic building blocks rather than specialised implementations.
+Every feature should be decomposed into simple semantic building blocks rather than specialized implementations.
 
-The engine should understand *meaning*, not syntax.
+The engine should understand meaning, not syntax.
 
 Whenever possible:
 
@@ -28,12 +30,13 @@ Whenever possible:
 * Rules should replace special cases.
 * Entities should replace hardcoded logic.
 * Relationships should replace nested conditionals.
+* Semantic models should replace implementation details.
 
 ---
 
 # 3. Core Concepts
 
-Chaos is composed of six fundamental concepts.
+Chaos is composed of several fundamental semantic concepts.
 
 ## Entity
 
@@ -46,16 +49,16 @@ Examples include:
 * Backend
 * Database
 * Function
-* Loop
 * Worker
 * Event
+* Loop
 
 Every entity may contain:
 
 * Properties
 * Child entities
 * Relationships
-* Rules
+* Dependencies
 
 ---
 
@@ -70,9 +73,9 @@ Examples:
 * frontend.framework
 * database.engine
 
-Properties do not contain behaviour.
+Properties never contain behaviour.
 
-They only represent state.
+They represent state only.
 
 ---
 
@@ -82,9 +85,11 @@ Relationships describe how entities connect.
 
 Examples:
 
-* Backend owns Framework.
 * Project contains Frontend.
-* Database belongs to Backend.
+* Project contains Backend.
+* Project contains Database.
+* Backend uses Database.
+* Backend exposes API.
 
 Relationships define structure.
 
@@ -92,7 +97,7 @@ Relationships define structure.
 
 ## Dependency
 
-Dependencies determine whether an entity is allowed to exist.
+Dependencies determine whether an entity, property, or question is applicable.
 
 Example:
 
@@ -104,68 +109,62 @@ Requires:
 
 Example:
 
-Database Layer
+Database Engine
 
 Requires:
 
 * Backend = Yes
 * Database = Yes
 
-Dependencies determine visibility.
+Dependencies determine availability.
 
 ---
 
-## Rule
+## Semantic State
 
-Rules describe behaviour.
+The Semantic State represents the current knowledge accumulated while the engine is reasoning.
 
-Examples:
+It exists only while an operation is in progress.
 
-If Frontend = No
-and Backend = No
+Unlike the Manifest, the Semantic State is temporary.
 
-Abort project generation.
-
-If Backend Framework = Django
-
-Default ORM = Django ORM.
-
-Rules determine actions.
+It allows the engine to progressively evaluate dependencies as additional information becomes available.
 
 ---
 
 ## Manifest
 
-The Manifest represents the complete semantic state of a project.
+The Project Manifest represents the completed semantic state of a project.
 
-Every Chaos command reads from and writes to the Manifest.
+It is the authoritative representation of the project.
 
-The Manifest is the single source of truth.
+Every Chaos command ultimately reads from or writes to the Manifest.
 
 ---
 
 # 4. Chaos Engine
 
-The Chaos Engine is responsible for interpreting entities.
+The Chaos Engine is responsible for interpreting semantic entities.
 
-The engine performs the following steps:
+It performs reasoning independently of any implementation language.
 
-1. Read entities.
-2. Read current Manifest.
-3. Evaluate dependencies.
-4. Apply rules.
-5. Validate project.
-6. Produce semantic model.
-7. Execute requested operation.
+Its responsibilities include:
 
-The engine does not understand programming languages.
+1. Loading semantic entities.
+2. Resolving dependencies.
+3. Determining available questions.
+4. Normalizing user input.
+5. Validating semantic correctness.
+6. Constructing semantic state.
+7. Producing a Project Manifest.
 
-It only understands entities and their relationships.
+The engine never generates implementation-specific code directly.
 
 ---
 
 # 5. Engine Architecture
 
+```text
 Chaos
 │
 ├── CLI Layer
@@ -173,26 +172,26 @@ Chaos
 │     Command dispatch
 │
 ├── Engine Layer
-│     Orchestrates initialization
-│     Maintains semantic state
+│     Semantic reasoning
 │
 │     ├── Registry
-│     │     Question definitions
+│     │     Declarative question definitions
 │     │
 │     ├── Dependency
-│     │     Dependency language
+│     │     Semantic dependency language
 │     │
 │     ├── Resolver
+│     │     Evaluates dependencies
 │     │     Determines available questions
 │     │
 │     ├── Normalizer
 │     │     Converts raw input into canonical values
 │     │
 │     ├── Validator
-│     │     Confirms semantic validity
+│     │     Confirms semantic correctness
 │     │
 │     └── SemanticState
-│           Current knowledge during initialization
+│           Current semantic knowledge
 │
 ├── Manifest Layer
 │     ProjectManifest
@@ -202,91 +201,107 @@ Chaos
 │     ToolingManifest
 │
 └── Generator Layer
+      Project generation
       (planned)
+```
+
+The initialization workflow follows the pipeline below.
+
+```text
+Registry
+        │
+        ▼
+Resolver
+        │
+        ▼
+Available Question
+        │
+        ▼
+CLI Prompt
+        │
+        ▼
+Raw Answer
+        │
+        ▼
+Normalizer
+        │
+        ▼
+Validator
+        │
+        ▼
+SemanticState
+        │
+        └──────────────┐
+                       │
+                       ▼
+                  Resolver
+```
+
+The cycle repeats until no unanswered questions remain.
+
+The completed Semantic State is converted into a Project Manifest.
+
+The Generator consumes the Manifest to produce implementation-specific projects.
 
 ---
 
 # 6. Commands
 
-Every Chaos command is an interface to the same engine.
+Every Chaos command is an interface to the same semantic engine.
 
 ## initialize
 
-Purpose
-
 Construct a new semantic project.
 
-Output
-
-A valid Manifest and generated project.
+Produces a validated Project Manifest and generates a project.
 
 ---
 
 ## write
 
-Purpose
+Construct semantic program entities.
 
-Construct semantic code entities.
-
-Output
-
-Language-independent semantic code.
+Produces language-independent semantic code.
 
 ---
 
 ## edit
 
-Purpose
+Modify an existing Project Manifest.
 
-Modify an existing Manifest.
-
-Output
-
-Updated semantic model.
+Produces an updated semantic model.
 
 ---
 
 ## run
 
-Purpose
+Execute an existing project.
 
-Execute a project.
-
-Output
-
-Running application.
+Produces a running application.
 
 ---
 
 ## translate
 
-Purpose
-
 Convert semantic code into a target programming language.
 
-Output
-
-Generated source code.
+Produces generated source code.
 
 ---
 
 ## doctor
 
-Purpose
-
 Validate project integrity.
 
-Output
-
-Errors, warnings, and recommendations.
+Produces errors, warnings, and recommendations.
 
 ---
 
 # 7. Project Model
 
-A Project is the root entity.
+Every project is represented by a root Project entity.
 
-```
+```text
 Project
 ├── Metadata
 ├── Frontend
@@ -296,164 +311,143 @@ Project
 └── State
 ```
 
-Every project command ultimately modifies this object.
+Every project command ultimately modifies this structure.
 
 ---
 
 # 8. Entity Lifecycle
 
-Every entity follows the same lifecycle.
+Every semantic entity follows the same lifecycle.
 
-```
+```text
 Create
-
-↓
-
+   │
+   ▼
 Assign Properties
-
-↓
-
+   │
+   ▼
 Resolve Dependencies
-
-↓
-
+   │
+   ▼
 Validate
-
-↓
-
-Apply Rules
-
-↓
-
+   │
+   ▼
 Store
-
-↓
-
+   │
+   ▼
 Generate Output
 ```
 
-No entity should bypass this process.
+No entity should bypass this lifecycle.
 
 ---
 
 # 9. Question System
 
-The CLI does not contain project logic.
+The CLI contains no architectural knowledge.
 
-Instead, it presents entities to the user.
+Instead, it presents semantic questions supplied by the Registry.
 
-Each question contains:
+Each question defines:
 
+* Identifier
 * Prompt
+* Answer Type
 * Options
 * Dependencies
-* Validation
+* Manifest Mapping
 * Effects
-* Manifest Key
 
-The engine determines whether a question should be displayed.
+The Resolver determines whether a question is currently available.
 
-Questions never determine architecture.
+Questions never determine project architecture.
 
-They only collect information.
+They only collect semantic information.
 
 ---
 
 # 10. Manifest
 
-The Manifest stores the semantic state of a project.
+The Project Manifest stores the complete semantic state of a project.
 
-Example structure:
+Typical structure:
 
-```
+```text
 Project
-
-Frontend
-
-Backend
-
-Database
-
-Tooling
-
-State
+├── Metadata
+├── Frontend
+├── Backend
+├── Database
+├── Tooling
+└── State
 ```
 
-Future commands such as `edit`, `doctor`, and `run` operate on the Manifest rather than scanning project files.
+Future commands such as `edit`, `doctor`, `run`, and `translate` operate on the Manifest rather than scanning implementation files.
 
 ---
 
 # 11. Generation
 
-Generation is a consequence of the semantic model.
+Project generation is a consequence of the Manifest.
 
-```
-Manifest
-
-↓
-
+```text
+ProjectManifest
+        │
+        ▼
 Template Selection
-
-↓
-
+        │
+        ▼
 Project Generator
-
-↓
-
+        │
+        ▼
 Filesystem
-
-↓
-
+        │
+        ▼
 Dependency Installation
-
-↓
-
+        │
+        ▼
 Ready
 ```
 
-Templates should contain implementation details.
+Templates contain implementation-specific knowledge.
 
-The engine should not.
+The engine does not.
 
 ---
 
 # 12. Translation
 
-Translation is a separate pipeline.
+Translation is an independent pipeline.
 
-```
+```text
 Chaos Source
-
-↓
-
+        │
+        ▼
 Parser
-
-↓
-
+        │
+        ▼
 Semantic Tree
-
-↓
-
+        │
+        ▼
 Language Generator
-
-↓
-
+        │
+        ▼
 Target Language
 ```
 
 The parser produces semantic entities.
 
-Generators convert those entities into language-specific syntax.
+Language generators convert semantic entities into implementation-specific syntax.
 
 ---
 
 # 13. Guiding Principles
 
-When adding a feature, ask:
+When introducing a new feature, ask:
 
 * Does this introduce a new semantic concept?
-* Can this be represented as an entity?
-* Does it belong as data instead of code?
+* Can it be represented as an entity?
+* Should it exist as data rather than implementation logic?
 * Can another command reuse it?
 * Does it simplify the engine?
 
@@ -463,15 +457,16 @@ If the answer is no, reconsider the design.
 
 # 14. Future Work
 
-Future versions may include:
+Future versions may introduce:
 
-* Plugin system
+* Plugin architecture
 * Additional project types
 * Event system
 * Worker system
+* Semantic optimizer
 * AI-assisted generation
-* Multiple language backends
+* Multiple language generators
 * Incremental project migration
-* Semantic optimisation
+* Distributed execution
 
-These should extend the existing architecture rather than replace it.
+These capabilities should extend the existing semantic architecture rather than replace it.
