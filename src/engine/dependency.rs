@@ -11,7 +11,11 @@
 /// Fields are grouped loosely by the entity they belong to. This is a flat
 /// enumeration rather than a path into the manifest tree, keeping
 /// dependency data independent of any particular manifest representation.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// Derives `Hash` (alongside `Eq`) so `Field` can be used as a key in
+/// hash-based collections, such as the map backing `SemanticState` in
+/// `engine::resolver`.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Field {
     FrontendEnabled,
     FrontendLanguage,
@@ -38,7 +42,10 @@ pub enum Field {
 ///
 /// Kept generic rather than tied to specific manifest enums, so this module
 /// does not depend on `crate::manifest`.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// Derives `Hash` (alongside `Eq`) for consistency with `Field` and to
+/// support potential future use as, or within, a hash-based collection key.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Value {
     Bool(bool),
     Text(String),
