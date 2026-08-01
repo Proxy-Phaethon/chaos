@@ -5,15 +5,17 @@
 //! internal module layout.
 
 mod backend;
+mod builder;
 mod database;
 mod frontend;
 mod project;
 mod tooling;
 
 pub use backend::{ApiStyle, Authentication, BackendFramework, BackendLanguage, BackendManifest};
+pub use builder::{ManifestBuildError, ManifestBuilder};
 pub use database::{DatabaseEngine, DatabaseManifest, Orm};
 pub use frontend::{
     FrontendFramework, FrontendLanguage, FrontendManifest, Routing, StateManagement, Styling,
 };
 pub use project::{ProjectManifest, ProjectMetadata, ProjectState};
-pub use tooling::{Docker, Git, Testing, ToolingManifest}; 
+pub use tooling::{Docker, Git, Testing, ToolingManifest};
