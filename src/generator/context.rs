@@ -76,7 +76,7 @@ impl Default for GenerationOptions {
 /// that needs different settings or a different manifest is expressed as a
 /// new context, not a mutation of an existing one. This struct contains no
 /// business logic; it is a pure data container.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct GenerationContext {
     /// The validated manifest describing the project being generated.
     manifest: ProjectManifest,

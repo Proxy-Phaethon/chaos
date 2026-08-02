@@ -43,7 +43,7 @@ pub enum ProjectState {
 /// `ProjectManifest` owns project metadata plus each application layer's own
 /// manifest. It performs no validation, generation, or serialization —
 /// those are the responsibilities of other modules.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectManifest {
     pub metadata: ProjectMetadata,
     pub frontend: Option<FrontendManifest>,

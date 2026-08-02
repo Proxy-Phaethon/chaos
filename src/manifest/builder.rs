@@ -7,8 +7,7 @@
 //! responsibilities of other modules, and are expected to have already run
 //! by the time `build` is called.
 
-use crate::engine::dependency::{Field, Value};
-use crate::engine::resolver::SemanticState;
+use crate::engine::{Field, SemanticState, Value};
 
 use super::backend::{ApiStyle, Authentication, BackendFramework, BackendLanguage, BackendManifest};
 use super::database::{DatabaseEngine, DatabaseManifest, Orm};

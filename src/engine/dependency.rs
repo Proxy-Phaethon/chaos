@@ -17,9 +17,14 @@
 /// `engine::resolver`.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Field {
+    ProjectName,
+
     FrontendEnabled,
     FrontendLanguage,
     FrontendFramework,
+    FrontendRouting,
+    FrontendStyling,
+    FrontendStateManagement,
 
     BackendEnabled,
     BackendLanguage,
@@ -56,25 +61,22 @@ pub enum Value {
 /// current semantic state.
 ///
 /// `Condition` is purely descriptive. It does not know how to evaluate
-/// itself; that responsibility belongs to a future resolver.
+/// itself; that responsibility belongs to the resolver.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Condition {
     /// The given field represents a toggle-like entity that must be enabled.
-    /// Example: "Backend is enabled."
     Enabled(Field),
 
     /// The given field represents a toggle-like entity that must be disabled.
     Disabled(Field),
 
-    /// The given field must have a selected value, without constraining
-    /// which one. Example: "Backend language has been selected."
+    /// The given field must have a selected value.
     IsPresent(Field),
 
     /// The given field must not have a selected value.
     IsAbsent(Field),
 
     /// The given field must equal the given value.
-    /// Example: "Backend framework equals Django."
     Equals(Field, Value),
 
     /// The given field must not equal the given value.
@@ -89,11 +91,11 @@ pub enum Condition {
     /// The given condition must not hold.
     Not(Box<Condition>),
     // TODO: future condition kinds (e.g. version constraints, cross-entity
-    // comparisons) are not yet specified in the architecture.
+    // comparisons) are not yet specified.
 }
 
-/// A named dependency: a condition, plus an optional human-readable
-/// description of why it exists.
+/// A named dependency: a condition plus an optional human-readable
+/// explanation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Dependency {
     pub condition: Condition,
@@ -101,7 +103,7 @@ pub struct Dependency {
 }
 
 impl Dependency {
-    /// Creates a new dependency from a condition, with no description.
+    /// Creates a new dependency from a condition.
     pub fn new(condition: Condition) -> Self {
         Self {
             condition,
@@ -109,9 +111,11 @@ impl Dependency {
         }
     }
 
-    /// Creates a new dependency from a condition with an attached
-    /// human-readable description.
-    pub fn with_description(condition: Condition, description: impl Into<String>) -> Self {
+    /// Creates a dependency with a description.
+    pub fn with_description(
+        condition: Condition,
+        description: impl Into<String>,
+    ) -> Self {
         Self {
             condition,
             description: Some(description.into()),
