@@ -116,3 +116,28 @@ pub trait Template {
 // runtime, once a plugin system exists.
 // TODO: user-defined templates — templates authored by end users (e.g. via
 // `chaos edit`), distinct from templates shipped with Chaos itself.
+
+// TODO: concrete `Template` implementations. None exist yet — only the
+// trait above does. Each of the following should live in its own module
+// once implemented, following the "one module per responsibility" pattern
+// used throughout this project, and should be registered with whatever
+// discovers applicable templates for a `Planner` (see
+// `super::planner::DefaultPlanner`'s TODOs):
+//
+// TODO: README template — contributes a root `README.md`, independent of
+// frontend/backend choice; always applicable.
+// TODO: Cargo.toml template — applies when the backend language is Rust
+// (Axum, Actix Web, or Rocket); contributes the crate manifest.
+// TODO: package.json template — applies when the frontend framework is
+// one of the Node-based frontends, or the backend language is Node.js;
+// contributes the package manifest.
+// TODO: .gitignore template — applies when tooling's Git is enabled;
+// contents should vary by whichever languages/frameworks are present in
+// the manifest.
+// TODO: Next.js template — applies when the frontend framework is React
+// with the Next.js meta-framework; contributes the Next.js project
+// structure.
+// TODO: Django template — applies when the backend language is Python
+// with the Django framework; contributes the Django project structure.
+// TODO: Axum template — applies when the backend language is Rust with
+// the Axum framework; contributes the Axum project structure.
