@@ -5,7 +5,7 @@
 //! single generation run, so generator components don't need to pass
 //! numerous unrelated parameters between one another. This module is
 //! purely semantic: it contains no filesystem operations, no plan
-//! construction, no template logic, and no CLI code.
+//! construction, no template selection, no validation, and no CLI code.
 
 use std::path::PathBuf;
 
