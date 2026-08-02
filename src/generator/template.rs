@@ -3,12 +3,15 @@
 //!
 //! A template is a reusable generation component capable of contributing
 //! operations to a `GenerationPlan` for a project it recognizes as
-//! applicable. This module defines only the common interface every
-//! template implements — it contains no framework-specific templates
-//! (React, Django, Axum, or otherwise), no filesystem operations, no
-//! manifest construction, and no CLI code. The generator discovers
-//! applicable templates and asks each one to extend a plan; how templates
-//! are discovered is not this module's concern.
+//! applicable. This module defines the common interface every template
+//! implements, plus concrete templates as they are added — it contains no
+//! filesystem operations, no manifest construction, and no CLI code.
+//! Concrete templates may inspect the `ProjectManifest`, but never touch
+//! the filesystem or render anything through the executor; contributing
+//! `GenerationOperation`s to a `GenerationPlan` is the full extent of
+//! their responsibility. The generator discovers applicable templates and
+//! asks each one to extend a plan; how templates are discovered is not
+//! this module's concern.
 
 use crate::manifest::ProjectManifest;
 
@@ -117,15 +120,78 @@ pub trait Template {
 // TODO: user-defined templates — templates authored by end users (e.g. via
 // `chaos edit`), distinct from templates shipped with Chaos itself.
 
-// TODO: concrete `Template` implementations. None exist yet — only the
-// trait above does. Each of the following should live in its own module
-// once implemented, following the "one module per responsibility" pattern
-// used throughout this project, and should be registered with whatever
-// discovers applicable templates for a `Planner` (see
-// `super::planner::DefaultPlanner`'s TODOs):
+/// Contributes a root `README.md` to every project, regardless of its
+/// frontend, backend, or tooling choices.
+///
+/// `ReadmeTemplate` is the first concrete `Template` implementation and
+/// exists partly to establish the pattern later templates
+/// (`GitignoreTemplate`, `CargoTomlTemplate`, `NextJsTemplate`,
+/// `DjangoTemplate`, and so on — see the TODO list below) should follow:
+/// a small, self-contained type that implements `Template` by reading
+/// only what it needs from the manifest, and appends exactly the
+/// operations its own responsibility requires.
+pub struct ReadmeTemplate {
+    metadata: TemplateMetadata,
+}
+
+impl ReadmeTemplate {
+    /// Creates a new `ReadmeTemplate`.
+    pub fn new() -> Self {
+        Self {
+            metadata: TemplateMetadata::with_description(
+                TemplateId::new("readme"),
+                "README",
+                "Contributes a root README.md describing the project.",
+            ),
+        }
+    }
+
+    /// Renders the README's content from `manifest`.
+    ///
+    /// Kept as a private helper, separate from `contribute`, so the
+    /// rendering step itself stays easy to test or extend independently
+    /// of plan-building — e.g. as more manifest fields are surfaced here.
+    // TODO: surface more of the manifest in the rendered README (frontend
+    // framework, backend framework, database, tooling) once it's clear
+    // what a useful README should say about each. For now this only uses
+    // the project name.
+    fn render(&self, manifest: &ProjectManifest) -> String {
+        format!("# {}\n\nGenerated with Chaos.\n", manifest.metadata.name)
+    }
+}
+
+impl Default for ReadmeTemplate {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Template for ReadmeTemplate {
+    fn metadata(&self) -> &TemplateMetadata {
+        &self.metadata
+    }
+
+    /// Always applies — every project gets a README, independent of
+    /// frontend/backend/tooling choices.
+    fn applies_to(&self, _manifest: &ProjectManifest) -> bool {
+        true
+    }
+
+    /// Appends a single `WriteFile` operation for `README.md` at the
+    /// project root.
+    fn contribute(&self, manifest: &ProjectManifest, plan: &mut GenerationPlan) -> Result<(), GenerationError> {
+        plan.write_file("README.md", self.render(manifest));
+        Ok(())
+    }
+}
+
+// TODO: additional concrete `Template` implementations. Each of the
+// following should live in its own module once implemented, following the
+// "one module per responsibility" pattern used throughout this project,
+// and should be registered with whatever discovers applicable templates
+// for a `Planner` (see `super::planner::DefaultPlanner`'s TODOs) alongside
+// `ReadmeTemplate`:
 //
-// TODO: README template — contributes a root `README.md`, independent of
-// frontend/backend choice; always applicable.
 // TODO: Cargo.toml template — applies when the backend language is Rust
 // (Axum, Actix Web, or Rocket); contributes the crate manifest.
 // TODO: package.json template — applies when the frontend framework is
