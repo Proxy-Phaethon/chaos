@@ -9,7 +9,10 @@
 //! operations for a `FilesystemExecutor` (or equivalent) to carry out
 //! later.
 
-use crate::manifest::ProjectManifest;
+use crate::manifest::{
+    Authentication, BackendFramework, BackendLanguage, BackendManifest, Docker,
+    FrontendFramework, FrontendLanguage, FrontendManifest, Git, ProjectManifest, Testing,
+};
 
 use super::error::GenerationError;
 use super::plan::GenerationPlan;
@@ -32,30 +35,162 @@ pub trait Planner {
     fn plan(&self, manifest: &ProjectManifest) -> Result<GenerationPlan, GenerationError>;
 }
 
-/// A placeholder `Planner` implementation.
+/// The Version 1 default `Planner` implementation.
 ///
-/// `DefaultPlanner` currently produces an empty `GenerationPlan` for every
-/// manifest, regardless of its contents. It exists so the rest of the
-/// Generation subsystem (in particular `Generator`) has a concrete
-/// `Planner` to be constructed with today, ahead of real template
-/// discovery being implemented.
+/// `DefaultPlanner` inspects a manifest's frontend, backend, and tooling
+/// sections and appends a small, hardcoded set of operations for each —
+/// directories, and representative `CreateFile`/`WriteFile`/`CopyTemplate`
+/// entries. This stands in for real template discovery: the operations it
+/// contributes today are illustrative placeholders, not the final output
+/// content, and are expected to be replaced once the `Template` system
+/// (see `generator::template`) has concrete implementations to discover
+/// and delegate to instead.
 // TODO: discover applicable `Template`s (see `generator::template`) for
 // the manifest's frontend framework/meta-framework, backend
-// language/framework, database engine/ORM, and tooling choices.
+// language/framework, database engine/ORM, and tooling choices, and
+// replace the hardcoded operations below with contributions gathered from
+// them.
 // TODO: ask each applicable template to contribute to the plan, in an
 // order that respects template dependencies once those exist (see the
 // TODOs on `TemplateMetadata`).
-// TODO: append shared, manifest-independent operations (e.g. a root
-// README, a `.chaos` manifest file) once their generation is designed.
 // TODO: surface `GenerationError::InvalidManifest` for manifests this
-// planner recognizes as unplannable, rather than silently producing an
-// empty plan for them as it does today.
+// planner recognizes as unplannable, rather than assuming every reachable
+// combination below is always plannable as it does today.
 pub struct DefaultPlanner;
 
 impl DefaultPlanner {
     /// Creates a new `DefaultPlanner`.
     pub fn new() -> Self {
         Self
+    }
+
+    /// Appends the frontend's operations to `plan`, if a frontend is
+    /// present in `manifest`.
+    // TODO: routing and styling and state_management are not yet reflected
+    // in any operation below — see `FrontendManifest`'s own fields, which
+    // this planner does not yet consult beyond language and framework.
+    fn plan_frontend(&self, frontend: &FrontendManifest, plan: &mut GenerationPlan) {
+        plan.create_directory("frontend");
+
+        let language_slug = match frontend.language {
+            FrontendLanguage::TypeScript => "typescript",
+            FrontendLanguage::JavaScript => "javascript",
+        };
+        let (framework_slug, entry_file) = match frontend.framework {
+            FrontendFramework::React => ("react", "frontend/src/App"),
+            FrontendFramework::Vue => ("vue", "frontend/src/App"),
+            FrontendFramework::Svelte => ("svelte", "frontend/src/App"),
+            FrontendFramework::Solid => ("solid", "frontend/src/App"),
+        };
+
+        // Illustrative only — the real entry file's extension, content,
+        // and surrounding project structure belong to a future Template,
+        // not to this hardcoded stopgap.
+        let extension = match (frontend.framework, frontend.language) {
+            (FrontendFramework::React, FrontendLanguage::TypeScript) => "tsx",
+            (FrontendFramework::React, FrontendLanguage::JavaScript) => "jsx",
+            (_, FrontendLanguage::TypeScript) => "ts",
+            (_, FrontendLanguage::JavaScript) => "js",
+        };
+
+        plan.copy_template(
+            format!("frontend/{}-{}", framework_slug, language_slug),
+            format!("{}.{}", entry_file, extension),
+        );
+
+        plan.write_file(
+            "frontend/package.json",
+            "{\n  \"name\": \"frontend\",\n  \"private\": true\n}\n",
+        );
+    }
+
+    /// Appends the backend's operations to `plan`, if a backend is
+    /// present in `manifest`.
+    // TODO: API style is not yet reflected in any operation below — see
+    // `BackendManifest::api_style`, which this planner does not yet
+    // consult.
+    fn plan_backend(&self, backend: &BackendManifest, plan: &mut GenerationPlan) {
+        plan.create_directory("backend");
+
+        let (language_slug, entry_file) = match backend.language {
+            BackendLanguage::Python => ("python", "backend/main.py"),
+            BackendLanguage::Go => ("go", "backend/main.go"),
+            BackendLanguage::Rust => ("rust", "backend/src/main.rs"),
+            BackendLanguage::NodeJs => ("nodejs", "backend/index.js"),
+            BackendLanguage::Php => ("php", "backend/index.php"),
+            BackendLanguage::Java => ("java", "backend/Main.java"),
+            BackendLanguage::CSharp => ("csharp", "backend/Program.cs"),
+        };
+        let framework_slug = match backend.framework {
+            BackendFramework::Django => "django",
+            BackendFramework::FastApi => "fastapi",
+            BackendFramework::Flask => "flask",
+            BackendFramework::Gin => "gin",
+            BackendFramework::Echo => "echo",
+            BackendFramework::Fiber => "fiber",
+            BackendFramework::Axum => "axum",
+            BackendFramework::ActixWeb => "actix-web",
+            BackendFramework::Rocket => "rocket",
+            BackendFramework::Express => "express",
+            BackendFramework::Fastify => "fastify",
+            BackendFramework::NestJs => "nestjs",
+            BackendFramework::Laravel => "laravel",
+            BackendFramework::Symfony => "symfony",
+            BackendFramework::SpringBoot => "spring-boot",
+            BackendFramework::AspNetCore => "aspnet-core",
+        };
+
+        plan.copy_template(
+            format!("backend/{}-{}", language_slug, framework_slug),
+            entry_file,
+        );
+
+        // TODO: the database engine/ORM (backend.database) should
+        // contribute its own operations (e.g. a schema or config file)
+        // once a database Template exists. Not yet represented.
+
+        if backend.authentication != Authentication::None {
+            // TODO: real auth scaffolding (middleware, config) belongs to
+            // a future auth Template. For now, just note that it was
+            // requested.
+            plan.write_file(
+                "backend/AUTH_TODO.md",
+                "Authentication was requested for this project but is not yet scaffolded by Chaos.\n",
+            );
+        }
+    }
+
+    /// Appends tooling operations to `plan`.
+    ///
+    /// Unlike frontend/backend, tooling is not optional — every manifest
+    /// has a `ToolingManifest`, so this is always called.
+    // TODO: Docker::Enabled should contribute a Dockerfile / compose file
+    // once an infra Template exists. Not yet represented.
+    // TODO: Git::Enabled describes a repository that should be
+    // initialized, which is a command to run, not a filesystem operation
+    // this planner can express with today's `GenerationOperation`
+    // variants — only the file that commonly accompanies it (.gitignore)
+    // is planned here.
+    fn plan_tooling(&self, manifest: &ProjectManifest, plan: &mut GenerationPlan) {
+        if manifest.tooling.git == Git::Enabled {
+            plan.write_file(".gitignore", "node_modules/\n.env\n");
+        }
+
+        if manifest.tooling.docker == Docker::Enabled {
+            plan.write_file(
+                "Dockerfile",
+                "# Generated by Chaos — placeholder until a real infra Template exists.\n",
+            );
+        }
+
+        match manifest.tooling.testing {
+            Testing::None => {}
+            Testing::Unit | Testing::UnitAndIntegration => {
+                plan.create_directory("tests");
+                // TODO: per-language test scaffolding belongs to a future
+                // testing Template. This only reserves the directory.
+            }
+        }
     }
 }
 
@@ -66,12 +201,31 @@ impl Default for DefaultPlanner {
 }
 
 impl Planner for DefaultPlanner {
-    /// Returns an empty `GenerationPlan`, regardless of `manifest`'s
-    /// contents.
+    /// Builds a plan by inspecting `manifest`'s frontend, backend, and
+    /// tooling sections and appending a hardcoded set of operations for
+    /// each present section, plus a root `README.md` that is always
+    /// contributed.
     ///
-    /// This is a placeholder — see the TODOs on `DefaultPlanner` for what
-    /// real planning will eventually involve.
-    fn plan(&self, _manifest: &ProjectManifest) -> Result<GenerationPlan, GenerationError> {
-        Ok(GenerationPlan::new())
+    /// This is a stopgap implementation — see the TODOs on `DefaultPlanner`
+    /// for what real, template-driven planning will eventually involve.
+    fn plan(&self, manifest: &ProjectManifest) -> Result<GenerationPlan, GenerationError> {
+        let mut plan = GenerationPlan::new();
+
+        plan.write_file(
+            "README.md",
+            format!("# {}\n\nGenerated by Chaos.\n", manifest.metadata.name),
+        );
+
+        if let Some(frontend) = &manifest.frontend {
+            self.plan_frontend(frontend, &mut plan);
+        }
+
+        if let Some(backend) = &manifest.backend {
+            self.plan_backend(backend, &mut plan);
+        }
+
+        self.plan_tooling(manifest, &mut plan);
+
+        Ok(plan)
     }
 }
