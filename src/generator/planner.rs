@@ -16,6 +16,7 @@ use crate::manifest::{
 
 use super::error::GenerationError;
 use super::plan::GenerationPlan;
+use super::template::{ReadmeTemplate, Template};
 
 /// Builds a `GenerationPlan` from a `ProjectManifest`.
 ///
@@ -37,35 +38,67 @@ pub trait Planner {
 
 /// The Version 1 default `Planner` implementation.
 ///
-/// `DefaultPlanner` inspects a manifest's frontend, backend, and tooling
-/// sections and appends a small, hardcoded set of operations for each —
-/// directories, and representative `CreateFile`/`WriteFile`/`CopyTemplate`
-/// entries. This stands in for real template discovery: the operations it
-/// contributes today are illustrative placeholders, not the final output
-/// content, and are expected to be replaced once the `Template` system
-/// (see `generator::template`) has concrete implementations to discover
-/// and delegate to instead.
-// TODO: discover applicable `Template`s (see `generator::template`) for
-// the manifest's frontend framework/meta-framework, backend
-// language/framework, database engine/ORM, and tooling choices, and
-// replace the hardcoded operations below with contributions gathered from
-// them.
-// TODO: ask each applicable template to contribute to the plan, in an
-// order that respects template dependencies once those exist (see the
-// TODOs on `TemplateMetadata`).
+/// `DefaultPlanner` owns a collection of registered `Template`s and builds
+/// a plan by asking each one, in registration order, whether it applies to
+/// the manifest and, if so, letting it contribute its own operations. This
+/// is the planner's only role: template *selection* and *orchestration* —
+/// it never decides what a template's contribution should look like, and
+/// it never touches the filesystem itself.
+///
+/// Only `ReadmeTemplate` is registered so far. The remaining sections a
+/// project needs (frontend, backend, tooling) are still produced by
+/// hardcoded, illustrative operations below rather than real `Template`s,
+/// exactly as before — that hardcoding is a stopgap pending the concrete
+/// templates listed in the TODOs on `plan_frontend`/`plan_backend`/
+/// `plan_tooling` and in `template.rs`. As each of those templates is
+/// implemented, it should be registered here and its corresponding
+/// hardcoded method removed.
+// TODO: discover applicable `Template`s for the manifest's frontend
+// framework/meta-framework, backend language/framework, database
+// engine/ORM, and tooling choices, and register them below as they're
+// implemented (Cargo.toml, package.json, .gitignore, Next.js, Django,
+// Axum — see `template.rs`), replacing the corresponding hardcoded
+// `plan_*` method.
+// TODO: respect template dependencies once they exist (see the TODOs on
+// `TemplateMetadata`), rather than assuming registration order alone is a
+// sufficient contribution order.
 // TODO: surface `GenerationError::InvalidManifest` for manifests this
 // planner recognizes as unplannable, rather than assuming every reachable
 // combination below is always plannable as it does today.
-pub struct DefaultPlanner;
+pub struct DefaultPlanner {
+    templates: Vec<Box<dyn Template>>,
+}
 
 impl DefaultPlanner {
-    /// Creates a new `DefaultPlanner`.
+    /// Creates a new `DefaultPlanner`, registered with the Version 1 set
+    /// of built-in templates.
     pub fn new() -> Self {
-        Self
+        Self {
+            templates: vec![Box::new(ReadmeTemplate::new())],
+        }
+    }
+
+    /// Runs every registered template against `manifest`, appending the
+    /// contribution of each template whose `applies_to` returns `true`.
+    ///
+    /// Templates are consulted in registration order; each applicable
+    /// template's `contribute` is called in turn, and any error it
+    /// returns is propagated immediately.
+    fn plan_templates(&self, manifest: &ProjectManifest, plan: &mut GenerationPlan) -> Result<(), GenerationError> {
+        for template in &self.templates {
+            if template.applies_to(manifest) {
+                template.contribute(manifest, plan)?;
+            }
+        }
+        Ok(())
     }
 
     /// Appends the frontend's operations to `plan`, if a frontend is
     /// present in `manifest`.
+    ///
+    /// Hardcoded pending real frontend `Template`s (package.json, Next.js,
+    /// and so on — see `template.rs`); not yet expressed via the
+    /// `Template` trait.
     // TODO: routing and styling and state_management are not yet reflected
     // in any operation below — see `FrontendManifest`'s own fields, which
     // this planner does not yet consult beyond language and framework.
@@ -106,6 +139,10 @@ impl DefaultPlanner {
 
     /// Appends the backend's operations to `plan`, if a backend is
     /// present in `manifest`.
+    ///
+    /// Hardcoded pending real backend `Template`s (Django, Axum, and so
+    /// on — see `template.rs`); not yet expressed via the `Template`
+    /// trait.
     // TODO: API style is not yet reflected in any operation below — see
     // `BackendManifest::api_style`, which this planner does not yet
     // consult.
@@ -163,7 +200,10 @@ impl DefaultPlanner {
     /// Appends tooling operations to `plan`.
     ///
     /// Unlike frontend/backend, tooling is not optional — every manifest
-    /// has a `ToolingManifest`, so this is always called.
+    /// has a `ToolingManifest`, so this is always called. Hardcoded
+    /// pending real tooling `Template`s (.gitignore, an infra template for
+    /// Docker, and so on — see `template.rs`); not yet expressed via the
+    /// `Template` trait.
     // TODO: Docker::Enabled should contribute a Dockerfile / compose file
     // once an infra Template exists. Not yet represented.
     // TODO: Git::Enabled describes a repository that should be
@@ -201,20 +241,18 @@ impl Default for DefaultPlanner {
 }
 
 impl Planner for DefaultPlanner {
-    /// Builds a plan by inspecting `manifest`'s frontend, backend, and
-    /// tooling sections and appending a hardcoded set of operations for
-    /// each present section, plus a root `README.md` that is always
-    /// contributed.
+    /// Builds a plan by first running every registered `Template` against
+    /// `manifest` (currently just `ReadmeTemplate`), then appending the
+    /// remaining hardcoded frontend/backend/tooling operations for
+    /// whichever sections are present.
     ///
-    /// This is a stopgap implementation — see the TODOs on `DefaultPlanner`
-    /// for what real, template-driven planning will eventually involve.
+    /// This is a transitional implementation — see the TODOs on
+    /// `DefaultPlanner` for how the hardcoded portion is expected to
+    /// shrink as more concrete `Template`s are registered.
     fn plan(&self, manifest: &ProjectManifest) -> Result<GenerationPlan, GenerationError> {
         let mut plan = GenerationPlan::new();
 
-        plan.write_file(
-            "README.md",
-            format!("# {}\n\nGenerated by Chaos.\n", manifest.metadata.name),
-        );
+        self.plan_templates(manifest, &mut plan)?;
 
         if let Some(frontend) = &manifest.frontend {
             self.plan_frontend(frontend, &mut plan);
