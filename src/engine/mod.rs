@@ -17,7 +17,7 @@ mod validator;
 pub use dependency::{Condition, Dependency, Field, Value};
 pub use normalizer::{Normalizer, RawAnswer};
 pub use question::{AnswerKind, Effect, Question, QuestionId, QuestionOption};
-pub use resolver::{AvailabilityReason, QuestionAvailability, SemanticState};
+pub use resolver::{available_questions, AvailabilityReason, QuestionAvailability, SemanticState};
 pub use validator::{ValidationDiagnostic, ValidationResult};
 
 use crate::manifest::{ManifestBuildError, ManifestBuilder, ProjectManifest};

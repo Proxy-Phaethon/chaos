@@ -9,19 +9,17 @@
 //! `generator::template`) — it only constructs these pieces and hands
 //! control to them.
 
-mod engine;
-mod generator;
-mod manifest;
-
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
-use generator::{
+use chaos::generator::{
     DefaultPlanner, FilesystemExecutor, GenerationContext, GenerationError, Generator,
     TemplateResolver,
 };
-use manifest::{Docker, Git, ProjectManifest, ProjectMetadata, ProjectState, Testing, ToolingManifest};
+use chaos::manifest::{
+    Docker, Git, ProjectManifest, ProjectMetadata, ProjectState, Testing, ToolingManifest,
+};
 
 #[derive(Parser)]
 #[command(name = "chaos")]
