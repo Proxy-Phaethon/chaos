@@ -71,7 +71,7 @@ If a contract is violated, the component should fail predictably.
 
 ## Combinational Devices
 
-Complex systems emerge from simple devices.
+Complex systems emerge from simple devices. A calculator.
 
 Each device should perform one operation.
 
@@ -106,7 +106,7 @@ Neither should attempt to perform the other's responsibilities.
 
 Chaos will follow a similar structure to how physical systems are built.
 
-Logics, combined, will create a block to add contracts to. Several contractual blocks will create a combinational device. Combinational devices, when connected together, create the brain of the system.
+Logics, combined, will create a block to add contracts to. Several contractual blocks will create a combinational device, a.k.a. a calculator. Combinational devices, when connected together, create the brain of the system.
 
 ---
 
