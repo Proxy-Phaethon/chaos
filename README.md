@@ -21,105 +21,30 @@
 
 # Chaos
 
-Chaos is an experimental project exploring a language-independent representation of software.
+> Build software the way you think.
 
-Rather than treating programming languages as the source of truth, Chaos treats them as *targets*. Projects and code are first represented as semantic entities with defined relationships, dependencies, and rules. Those semantic models can then be generated, translated, validated, or modified through different interfaces.
+Chaos is an experiment in making software development feel closer to engineering than configuration.
 
-The long-term goal is to simplify software development by separating **intent** from **implementation**.
+Version 1 begins as a pocket tool for web developers. It scaffolds complete projects, wires together modern frameworks, installs dependencies, prepares documentation, and removes repetitive setup so developers can focus on building.
 
----
+But that is only the first step.
 
-## Current Status
+Chaos is a long-term exploration into a unified computing environment, where programming, project management, documentation, version control, automation, and eventually systems programming exist as parts of one coherent machine instead of dozens of disconnected tools.
 
-Chaos is currently in active development.
+The guiding philosophy is simple:
 
-Version 1 focuses on building the semantic engine and the project initialisation pipeline with explicit use for Web Developers.
+* Complexity should be distributed into small, understandable components.
+* Every component should have a clear contract.
+* Larger systems should emerge by composing smaller ones.
+* The computer should adapt to human thought, not the other way around.
 
-Current priorities include:
+Current research draws inspiration from digital systems, compiler construction, operating systems, natural language processing, and software engineering. As these ideas mature, they will shape the Chaos language itself: a language designed around computation and contracts rather than the syntax of existing programming languages.
 
-- Semantic architecture
-- Project initialisation
-- Manifest system
-- Dependency engine
-- Validation engine
-- Project generation
+Chaos is not trying to replace the software ecosystem overnight.
 
-Language translation and the Chaos programming language will be introduced after the semantic foundation is complete.
+Version 1 embraces existing tools like Git, Docker, Visual Studio Code, Django, Next.js, and many others. Future versions will gradually absorb more responsibilities where doing so creates a simpler, more coherent developer experience.
 
----
-
-## Philosophy
-
-Chaos is built around a small number of reusable concepts.
-
-- Everything is an entity.
-- Entities have properties.
-- Entities are connected by relationships.
-- Dependencies determine validity.
-- Rules determine behaviour.
-
-The engine understands these concepts rather than individual programming languages.
-
----
-
-## Planned Commands
-
-### `chaos initialize`
-
-Creates a new project by constructing a semantic Project Manifest through a dependency-driven question system.
-
-### `chaos write/end`
-
-Creates semantic source code that can later be translated into supported programming languages.
-
-### `chaos edit`
-
-Modifies an existing Project Manifest while preserving compatible project structure and translating affected implementation where possible.
-
-### `chaos run`
-
-Executes a project using its semantic configuration rather than individual framework commands.
-
----
-
-## Roadmap
-
-### Version 1
-
-- Semantic engine
-- Project manifest
-- Dependency resolver
-- Validator
-- `chaos initialize`
-- Project generation
-
-### Version 1.5
-
-- `chaos edit`
-- Project migration
-- Manifest upgrades
-
-### Version 2
-
-- Chaos language
-- Semantic parser
-- Language generators
-- Multi-language translation
-
----
-
-## Project Status
-
-Chaos is an experimental research project.
-
-The architecture is expected to evolve significantly as the semantic model matures.
-
-Early versions prioritise correctness, extensibility, and architectural clarity over feature count.
-
-## Built with
-
-Rust, chosen for safety, speed, and a single self-contained binary with
-zero runtime dependencies for the end user. Also it just sounds cool asf.
+This repository documents that journey.
 
 ## Note
 
