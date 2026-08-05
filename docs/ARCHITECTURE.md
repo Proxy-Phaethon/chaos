@@ -1,472 +1,287 @@
 # Chaos Architecture
 
-**Version:** 0.1
+> *Everything in Chaos exists for one reason: to transform information into action.*
 
 ---
 
-# 1. Purpose
+# Philosophy
 
-Chaos is a semantic software engineering engine.
+Chaos is built from the observation that every digital system, regardless of its complexity, is simply many small computational devices working together.
 
-Its command-line interface, language, project tools, and translators are all interfaces for constructing, modifying, validating, and translating a language-independent semantic model.
+A calculator.
+A compiler.
+A web server.
+A spacecraft guidance computer.
 
-Chaos is not built around Rust, Python, Go, or any other programming language. Those languages are outputs.
+They differ only in scale.
 
-The semantic model is the source of truth.
+Chaos therefore models software as a hierarchy of increasingly capable computational entities.
 
----
+Each layer has one responsibility.
 
-# 2. Design Philosophy
-
-Chaos is built around a small number of reusable semantic concepts.
-
-Every feature should be decomposed into simple semantic building blocks rather than specialized implementations.
-
-The engine should understand meaning, not syntax.
-
-Whenever possible:
-
-* Data should replace code.
-* Rules should replace special cases.
-* Entities should replace hardcoded logic.
-* Relationships should replace nested conditionals.
-* Semantic models should replace implementation details.
+No layer should perform the responsibilities of another.
 
 ---
 
-# 3. Core Concepts
+# Hierarchy
 
-Chaos is composed of several fundamental semantic concepts.
+```
+Logic
+    ↓
+Contract
+    ↓
+Block
+    ↓
+Calculator
+    ↓
+Engine
+    ↓
+Brain
+```
 
-## Entity
+Each layer exists because it introduces a new capability.
 
-An Entity represents a semantic object.
+---
+
+# Logic
+
+Logic is the smallest unit of computation.
+
+Chaos recognizes three categories of logic.
+
+## Logic 0
+
+Represents binary physical reality.
+
+```
+0
+1
+```
+
+This is the level closest to hardware.
+
+---
+
+## Logic 1
+
+Represents deterministic computational operations built upon Logic 0.
 
 Examples include:
 
-* Project
-* Frontend
-* Backend
-* Database
-* Function
-* Worker
-* Event
-* Loop
+* copy
+* compare
+* branch
+* store
+* transmit
+* invert
 
-Every entity may contain:
-
-* Properties
-* Child entities
-* Relationships
-* Dependencies
+Logic 1 performs work.
 
 ---
 
-## Property
+## Logic 2
 
-A Property stores information about an entity.
+Represents semantic intent.
+
+Logic 2 exists only inside Chaos.
+
+It describes what the programmer wants to accomplish rather than how hardware performs it.
+
+Logic 2 is eventually translated into Logic 1 operations.
+
+---
+
+# Contracts
+
+A contract defines the rules under which computation occurs.
+
+A contract specifies:
+
+* required inputs
+* produced outputs
+* assumptions
+* guarantees
+
+A contract never describes implementation.
+
+It only describes behavior.
+
+If two implementations satisfy the same contract, they are interchangeable.
+
+---
+
+# Blocks
+
+A block is the smallest reusable implementation unit.
+
+A block satisfies exactly one contract.
+
+Internally, a block combines Logic 0, Logic 1, and Logic 2 to perform its work.
+
+Blocks should remain small enough that their purpose can be understood immediately.
+
+---
+
+# Calculators
+
+A calculator performs one complete computation.
+
+A calculator is composed from one or more blocks.
+
+A calculator should solve exactly one problem.
 
 Examples:
 
-* backend.language
-* backend.framework
-* frontend.framework
-* database.engine
+* Validate Project
+* Generate README
+* Install Dependencies
+* Parse Syntax
+* Compile Project
 
-Properties never contain behaviour.
+A calculator does not coordinate other calculators.
 
-They represent state only.
+Its responsibility ends once its own computation is complete.
 
----
-
-## Relationship
-
-Relationships describe how entities connect.
-
-Examples:
-
-* Project contains Frontend.
-* Project contains Backend.
-* Project contains Database.
-* Backend uses Database.
-* Backend exposes API.
-
-Relationships define structure.
+Version 1 represents each calculator as a single file.
 
 ---
 
-## Dependency
+# Calculator Pipelines
 
-Dependencies determine whether an entity, property, or question is applicable.
+Multiple calculators may be connected together through a calculator pipeline.
 
-Example:
-
-Backend Language
-
-Requires:
-
-* Backend = Yes
-
-Example:
-
-Database Engine
-
-Requires:
-
-* Backend = Yes
-* Database = Yes
-
-Dependencies determine availability.
-
----
-
-## Semantic State
-
-The Semantic State represents the current knowledge accumulated while the engine is reasoning.
-
-It exists only while an operation is in progress.
-
-Unlike the Manifest, the Semantic State is temporary.
-
-It allows the engine to progressively evaluate dependencies as additional information becomes available.
-
----
-
-## Manifest
-
-The Project Manifest represents the completed semantic state of a project.
-
-It is the authoritative representation of the project.
-
-Every Chaos command ultimately reads from or writes to the Manifest.
-
----
-
-# 4. Chaos Engine
-
-The Chaos Engine is responsible for interpreting semantic entities.
-
-It performs reasoning independently of any implementation language.
-
-Its responsibilities include:
-
-1. Loading semantic entities.
-2. Resolving dependencies.
-3. Determining available questions.
-4. Normalizing user input.
-5. Validating semantic correctness.
-6. Constructing semantic state.
-7. Producing a Project Manifest.
-
-The engine never generates implementation-specific code directly.
-
----
-
-# 5. Engine Architecture
-
-```text
-Chaos
-│
-├── CLI Layer
-│     User interaction
-│     Command dispatch
-│
-├── Engine Layer
-│     Semantic reasoning
-│
-│     ├── Registry
-│     │     Declarative question definitions
-│     │
-│     ├── Dependency
-│     │     Semantic dependency language
-│     │
-│     ├── Resolver
-│     │     Evaluates dependencies
-│     │     Determines available questions
-│     │
-│     ├── Normalizer
-│     │     Converts raw input into canonical values
-│     │
-│     ├── Validator
-│     │     Confirms semantic correctness
-│     │
-│     └── SemanticState
-│           Current semantic knowledge
-│
-├── Manifest Layer
-│     ProjectManifest
-│     FrontendManifest
-│     BackendManifest
-│     DatabaseManifest
-│     ToolingManifest
-│
-└── Generator Layer
-      Project generation
-      (planned)
+```
+c.pipeline
 ```
 
-The initialization workflow follows the pipeline below.
+A calculator pipeline determines execution order.
 
-```text
-Registry
-        │
-        ▼
-Resolver
-        │
-        ▼
-Available Question
-        │
-        ▼
-CLI Prompt
-        │
-        ▼
-Raw Answer
-        │
-        ▼
-Normalizer
-        │
-        ▼
-Validator
-        │
-        ▼
-SemanticState
-        │
-        └──────────────┐
-                       │
-                       ▼
-                  Resolver
+It allows independent calculators to cooperate while remaining individually reusable.
+
+The output of one calculator may become the input of another.
+
+---
+
+# Engines
+
+An engine is a collection of calculators focused on one domain.
+
+Examples may include:
+
+* Initialize Engine
+* Write Engine
+* Run Engine
+* Language Engine
+* Documentation Engine
+
+Each engine exposes one coherent capability.
+
+Internally, engines organize calculators using one or more calculator pipelines.
+
+Version 1 represents each engine as a folder.
+
+---
+
+# Engine Pipelines
+
+Engines communicate through an engine pipeline.
+
+```
+e.pipeline
 ```
 
-The cycle repeats until no unanswered questions remain.
-
-The completed Semantic State is converted into a Project Manifest.
-
-The Generator consumes the Manifest to produce implementation-specific projects.
+Unlike calculator pipelines, engine pipelines coordinate entire systems rather than individual computations.
 
 ---
 
-# 6. Commands
+# Brain
 
-Every Chaos command is an interface to the same semantic engine.
+The brain is the complete Chaos project.
 
-## initialize
+It coordinates every engine.
 
-Construct a new semantic project.
+It understands the user's request and delegates work to the appropriate engines.
 
-Produces a validated Project Manifest and generates a project.
+The brain performs no low-level computation itself.
 
----
+Its responsibility is orchestration.
 
-## write
-
-Construct semantic program entities.
-
-Produces language-independent semantic code.
+Version 1 represents the brain as the project's root `.chaos` file.
 
 ---
 
-## edit
+# Information Flow
 
-Modify an existing Project Manifest.
+Every computation inside Chaos follows the same path.
 
-Produces an updated semantic model.
-
----
-
-## run
-
-Execute an existing project.
-
-Produces a running application.
-
----
-
-## translate
-
-Convert semantic code into a target programming language.
-
-Produces generated source code.
-
----
-
-## doctor
-
-Validate project integrity.
-
-Produces errors, warnings, and recommendations.
-
----
-
-# 7. Project Model
-
-Every project is represented by a root Project entity.
-
-```text
-Project
-├── Metadata
-├── Frontend
-├── Backend
-├── Database
-├── Tooling
-└── State
+```
+Input
+    ↓
+Logic
+    ↓
+Contract
+    ↓
+Block
+    ↓
+Calculator
+    ↓
+Engine
+    ↓
+Brain
+    ↓
+Output
 ```
 
-Every project command ultimately modifies this structure.
+No computation should skip layers.
 
 ---
 
-# 8. Entity Lifecycle
+# Design Principles
 
-Every semantic entity follows the same lifecycle.
+## Single Responsibility
 
-```text
-Create
-   │
-   ▼
-Assign Properties
-   │
-   ▼
-Resolve Dependencies
-   │
-   ▼
-Validate
-   │
-   ▼
-Store
-   │
-   ▼
-Generate Output
-```
-
-No entity should bypass this lifecycle.
+Every architectural layer exists for exactly one purpose.
 
 ---
 
-# 9. Question System
+## Explicit Contracts
 
-The CLI contains no architectural knowledge.
-
-Instead, it presents semantic questions supplied by the Registry.
-
-Each question defines:
-
-* Identifier
-* Prompt
-* Answer Type
-* Options
-* Dependencies
-* Manifest Mapping
-* Effects
-
-The Resolver determines whether a question is currently available.
-
-Questions never determine project architecture.
-
-They only collect semantic information.
+Behavior is always described before implementation.
 
 ---
 
-# 10. Manifest
+## Composability
 
-The Project Manifest stores the complete semantic state of a project.
+Small computational units should combine to create larger systems.
 
-Typical structure:
-
-```text
-Project
-├── Metadata
-├── Frontend
-├── Backend
-├── Database
-├── Tooling
-└── State
-```
-
-Future commands such as `edit`, `doctor`, `run`, and `translate` operate on the Manifest rather than scanning implementation files.
+Large systems should decompose naturally into smaller ones.
 
 ---
 
-# 11. Generation
+## Replaceability
 
-Project generation is a consequence of the Manifest.
-
-```text
-ProjectManifest
-        │
-        ▼
-Template Selection
-        │
-        ▼
-Project Generator
-        │
-        ▼
-Filesystem
-        │
-        ▼
-Dependency Installation
-        │
-        ▼
-Ready
-```
-
-Templates contain implementation-specific knowledge.
-
-The engine does not.
+Any implementation satisfying a contract may replace another implementation without changing the surrounding architecture.
 
 ---
 
-# 12. Translation
+## Hardware First
 
-Translation is an independent pipeline.
+Chaos treats software as a physical computational system.
 
-```text
-Chaos Source
-        │
-        ▼
-Parser
-        │
-        ▼
-Semantic Tree
-        │
-        ▼
-Language Generator
-        │
-        ▼
-Target Language
-```
+The language is inspired by digital logic rather than traditional programming language syntax.
 
-The parser produces semantic entities.
-
-Language generators convert semantic entities into implementation-specific syntax.
+Abstractions exist to simplify interaction with hardware, never to hide the existence of computation itself.
 
 ---
 
-# 13. Guiding Principles
+# Version 1 Scope
 
-When introducing a new feature, ask:
+Version 1 is a web developer's pocket tool.
 
-* Does this introduce a new semantic concept?
-* Can it be represented as an entity?
-* Should it exist as data rather than implementation logic?
-* Can another command reuse it?
-* Does it simplify the engine?
+The architecture exists independently of its features.
 
-If the answer is no, reconsider the design.
+Version 1 focuses on project initialization, scaffolding, dependency installation, repository setup, documentation generation, and developer tooling.
 
----
+Future versions may expand the architecture without changing its fundamental hierarchy.
 
-# 14. Future Work
-
-Future versions may introduce:
-
-* Plugin architecture
-* Additional project types
-* Event system
-* Worker system
-* Semantic optimizer
-* AI-assisted generation
-* Multiple language generators
-* Incremental project migration
-* Distributed execution
-
-These capabilities should extend the existing semantic architecture rather than replace it.
+The hierarchy is intended to remain constant even as new engines, calculators, and blocks are introduced.
