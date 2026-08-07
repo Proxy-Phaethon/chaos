@@ -16,3 +16,36 @@ im a student, not an employee. i dont NEED industry standards, i want what i bui
 
 so, ahem, say hello to chaos. this wi;ll be my document to track my progress of building the chaos language and eventually the CLI for it, because i suck at keeping physical notes (god bless the times i stared at my own handwriting in utter devastation). at least here, the words are legible, even if nonsensical, rambling, or too philosophical at time.
 
+Friday, August 7, 2026
+Chaos has a few words in its vocabulary now, and they're all based on a computer's hardware. this makes it rather confusing for someone who KNOWS about hardware to use this language, cause similar words mean slightly different things, but hey, that's the fun part about languages. it has to confuse you for a bit with synonyms before enlightening you.
+
+the most basic element of chaos is logic. logic0, to be specific. i'll explain in a bit. logic0, logic1, contracts, action, and sometimes mux + context, makes up a block. a block is something like a combinational device. it is a fully operational thing, a gear in a machine. the machine itself is a calculator (because it works like an actual calculator does). it can do operations, compute things, etc., but to make it BETTER than a normal calculator, you can give it a register. this is where it stores data, as states, in case you need to collect data and then use it elsewhere and then change it and store again and so on. 
+
+hopefully i manage to sit down and write a formal document for the language, this is just my brain dump, my apologies to anyone who happens to read this.
+
+if you connect a bunch of calculators together, it creates an engine. yes sort of surprising change of physical objects, but think of what an engine truly is. think of what it DOES, and imagine that. same way you imagine what a calculator does, not the literal flat device with buttons itself.
+
+an engine is a functional app, at this stage. a folder in a normal project could be an engine, and its files, calculators. neat stack of blocks.
+
+and you further connect all your engines together to create the brain, the file.chaos that is your entire software itself. voila. so simple.
+
+now let's look at the basic blocks as of today:
+1. logic0
+2. logic1
+3. contract
+4. action
+5. mux
+6. context
+7. register
+8. state
+9. transition
+10. metastable
+11. c.pipeline
+12. e.pipeline
+13. block
+14. calculator
+15. engine
+16. brain
+17. clock
+18. anticlock
+19. sequence
