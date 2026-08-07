@@ -49,5 +49,6 @@ now let's look at the basic blocks as of today:
 17. clock - executes in the main execution flow, waiting when necessary.
 18. anticlock - executes independently without blocking the current flow.
 19. sequence - a reusable custom behavior beyond actions. future idea.
+20. decoder - part of sequence. also a future idea.
 
 it'll change and evolve and grow over time, for sure. but let this remain here as a small reminder of where i started on this journey.
