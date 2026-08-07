@@ -30,22 +30,22 @@ an engine is a functional app, at this stage. a folder in a normal project could
 and you further connect all your engines together to create the brain, the file.chaos that is your entire software itself. voila. so simple.
 
 now let's look at the basic blocks as of today:
-1. logic0
-2. logic1
-3. contract
-4. action
-5. mux
-6. context
-7. register
-8. state
-9. transition
-10. metastable
-11. c.pipeline
-12. e.pipeline
-13. block
-14. calculator
-15. engine
-16. brain
-17. clock
-18. anticlock
-19. sequence
+1. logic0 - asks a question and decides the next path.
+2. logic1 - verifies the decision using rules or conditions.
+3. contract - a reusable rule or guarantee provided by Chaos.
+4. action - a user-defined combination of contracts to perform a task.
+5. mux - chooses behavior based on the current context.
+6. context - the environment or role that determines how something behaves.
+7. register - the section where all states are declared before use.
+8. state - a named piece of information stored for later use.
+9. transition - defines how a state changes over time.
+10. metastable - runs Chaos' built-in validation before information becomes trusted.
+11. c.pipeline - connects calculators into a single engine.
+12. e.pipeline - connects engines into the project's brain.
+13. block - the smallest executable unit of logic in Chaos.
+14. calculator - a complete Chaos source file made of blocks.
+15. engine - a collection of calculators working together.
+16. brain - the complete Chaos project formed from all engines.
+17. clock - executes in the main execution flow, waiting when necessary.
+18. anticlock - executes independently without blocking the current flow.
+19. sequence - a reusable custom behavior beyond actions. future idea.
