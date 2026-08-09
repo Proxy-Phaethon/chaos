@@ -96,29 +96,55 @@ i should've stuck to building a CLI with Rust. oh well.
 
 so a typical chaos project would look something like
 
-PROJECT
+CHAOS v1
 │
-├── BRAIN
-│    └── e.pipeline
-│         └── ENGINES
-│              └── c.pipeline
-│                   └── CALCULATORS / FILES
-│                        ├── register
-│                        │    └── states
-│                        │
-│                        └── blocks
-│                             ├── action
-│                             ├── logic0
-│                             ├── logic1
-│                             ├── logic2
-│                             ├── mux
-│                             ├── context
-│                             ├── transition
-│                             ├── constant
-│                             ├── state load
-│                             └── execute
+├── PROJECT
+│   │
+│   ├── BRAIN
+│   │   └── e.pipeline
+│   │       └── connects ENGINES
+│   │
+│   └── MEMORY
+│       └── central project data storage
 │
-└── memory
-     └── project-level data
+├── ENGINE
+│   └── c.pipeline
+│       └── connects CALCULATORS
+│
+└── CALCULATOR / FILE
+    │
+    ├── REGISTER
+    │   └── STATES
+    │       └── active calculator data
+    │
+    └── BLOCK
+        │
+        ├── ACTION
+        │   └── composed of CONTRACTS + BUILT-INS
+        │
+        ├── LOGIC
+        │   ├── logic0 → decision
+        │   ├── logic1 → loop
+        │   └── logic2 → cache / temporary retention
+        │
+        ├── MUX
+        │   └── contextual state switching
+        │       └── CONTEXT
+        │
+        ├── TRANSITION
+        │   └── rules for state changes
+        │
+        ├── CONSTANT
+        │   └── block-specific fixed data
+        │
+        ├── STATE LOAD
+        │   └── retrieves data from MEMORY
+        │
+        └── EXECUTE
+            ├── clock
+            │   └── follows normal execution flow
+            │
+            └── anticlock
+                └── executes independently
 
 obviously i havent included the actual necessities of a project. maybe you're using this for web development and have html and css. or for something else, alongside another language. this is simply what the structure of the CHAOS part looks like. somewhat. 
