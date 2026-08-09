@@ -153,18 +153,6 @@ That is a long way off. For now, the objective is considerably less glamorous:
 
 **Make Chaos v1 work.**
 
-## Philosophy
-
-Chaos is based on a few principles:
-
-* Complexity should be distributed into small, understandable components.
-* Components should have clear purposes and interfaces.
-* Larger behaviour should emerge from composition.
-* Domain-specific capabilities should remain separate from the language core.
-* The computer should adapt to human thought rather than forcing humans to think in arbitrary syntax.
-
-Chaos is not intended to hide computation from the programmer. It is intended to provide a computational model that is easier to reason about directly.
-
 ## Why Chaos Exists
 
 Chaos started because I got tired of memorizing different syntax for every programming language I had to use.
