@@ -93,3 +93,32 @@ think i've decided on the syntax for version one. almost. still missing a few mo
 now lies before the daunting task of tackling C for actually making this work. damn.
 
 i should've stuck to building a CLI with Rust. oh well.
+
+so a typical chaos project would look something like
+
+PROJECT
+│
+├── BRAIN
+│    └── e.pipeline
+│         └── ENGINES
+│              └── c.pipeline
+│                   └── CALCULATORS / FILES
+│                        ├── register
+│                        │    └── states
+│                        │
+│                        └── blocks
+│                             ├── action
+│                             ├── logic0
+│                             ├── logic1
+│                             ├── logic2
+│                             ├── mux
+│                             ├── context
+│                             ├── transition
+│                             ├── constant
+│                             ├── state load
+│                             └── execute
+│
+└── memory
+     └── project-level data
+
+obviously i havent included the actual necessities of a project. maybe you're using this for web development and have html and css. or for something else, alongside another language. this is simply what the structure of the CHAOS part looks like. somewhat. 
