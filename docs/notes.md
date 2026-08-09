@@ -96,44 +96,40 @@ i should've stuck to building a CLI with Rust. oh well.
 
 so a typical chaos project would look something like
 
+```mermaid
 flowchart TD
-    P[PROJECT]
+    PROJECT --> BRAIN
+    PROJECT --> MEMORY
 
-    P --> B[BRAIN]
-    P --> M[MEMORY]
+    BRAIN --> EP[e.pipeline]
+    EP --> ENGINES
 
-    B --> E1[e.pipeline]
-    E1 --> E[ENGINES]
+    ENGINES --> CP[c.pipeline]
+    CP --> CALCULATORS
 
-    E --> C1[c.pipeline]
-    C1 --> C[CALCULATORS / FILES]
+    CALCULATORS --> REGISTER
+    CALCULATORS --> BLOCKS
 
-    C --> R[REGISTER]
-    C --> BL[BLOCKS]
+    REGISTER --> STATES
 
-    R --> S[STATES]
+    BLOCKS --> ACTION
+    BLOCKS --> LOGIC
+    BLOCKS --> MUX
+    BLOCKS --> TRANSITION
+    BLOCKS --> CONSTANT
+    BLOCKS --> STATELOAD
+    BLOCKS --> EXECUTE
 
-    BL --> A[ACTION]
-    BL --> L[LOGIC]
-    BL --> MX[MUX]
-    BL --> T[TRANSITION]
-    BL --> K[CONSTANT]
-    BL --> SL[state load]
-    BL --> EX[EXECUTE]
+    LOGIC --> LOGIC0
+    LOGIC --> LOGIC1
+    LOGIC --> LOGIC2
 
-    L --> L0[logic0]
-    L --> L1[logic1]
-    L --> L2[logic2]
+    MUX --> CONTEXT
 
-    MX --> CT[CONTEXT]
+    EXECUTE --> CLOCK
+    EXECUTE --> ANTICLOCK
 
-    EX --> CL[clock]
-    EX --> AC[anticlock]
-
-    M --> MD[Project Data]
-    SL --> M
-
-    A --> CO[CONTRACTS]
-    A --> BI[BUILT-INS]
+    STATELOAD --> MEMORY
+```
 
 obviously i havent included the actual necessities of a project. maybe you're using this for web development and have html and css. or for something else, alongside another language. this is simply what the structure of the CHAOS part looks like. somewhat. 
