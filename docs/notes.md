@@ -96,55 +96,44 @@ i should've stuck to building a CLI with Rust. oh well.
 
 so a typical chaos project would look something like
 
-CHAOS v1
-│
-├── PROJECT
-│   │
-│   ├── BRAIN
-│   │   └── e.pipeline
-│   │       └── connects ENGINES
-│   │
-│   └── MEMORY
-│       └── central project data storage
-│
-├── ENGINE
-│   └── c.pipeline
-│       └── connects CALCULATORS
-│
-└── CALCULATOR / FILE
-    │
-    ├── REGISTER
-    │   └── STATES
-    │       └── active calculator data
-    │
-    └── BLOCK
-        │
-        ├── ACTION
-        │   └── composed of CONTRACTS + BUILT-INS
-        │
-        ├── LOGIC
-        │   ├── logic0 → decision
-        │   ├── logic1 → loop
-        │   └── logic2 → cache / temporary retention
-        │
-        ├── MUX
-        │   └── contextual state switching
-        │       └── CONTEXT
-        │
-        ├── TRANSITION
-        │   └── rules for state changes
-        │
-        ├── CONSTANT
-        │   └── block-specific fixed data
-        │
-        ├── STATE LOAD
-        │   └── retrieves data from MEMORY
-        │
-        └── EXECUTE
-            ├── clock
-            │   └── follows normal execution flow
-            │
-            └── anticlock
-                └── executes independently
+flowchart TD
+    P[PROJECT]
+
+    P --> B[BRAIN]
+    P --> M[MEMORY]
+
+    B --> E1[e.pipeline]
+    E1 --> E[ENGINES]
+
+    E --> C1[c.pipeline]
+    C1 --> C[CALCULATORS / FILES]
+
+    C --> R[REGISTER]
+    C --> BL[BLOCKS]
+
+    R --> S[STATES]
+
+    BL --> A[ACTION]
+    BL --> L[LOGIC]
+    BL --> MX[MUX]
+    BL --> T[TRANSITION]
+    BL --> K[CONSTANT]
+    BL --> SL[state load]
+    BL --> EX[EXECUTE]
+
+    L --> L0[logic0]
+    L --> L1[logic1]
+    L --> L2[logic2]
+
+    MX --> CT[CONTEXT]
+
+    EX --> CL[clock]
+    EX --> AC[anticlock]
+
+    M --> MD[Project Data]
+    SL --> M
+
+    A --> CO[CONTRACTS]
+    A --> BI[BUILT-INS]
 
 obviously i havent included the actual necessities of a project. maybe you're using this for web development and have html and css. or for something else, alongside another language. this is simply what the structure of the CHAOS part looks like. somewhat. 
