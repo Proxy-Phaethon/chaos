@@ -98,38 +98,42 @@ so a typical chaos project would look something like
 
 ```mermaid
 flowchart TD
-    PROJECT --> BRAIN
-    PROJECT --> MEMORY
+    P[PROJECT]
 
-    BRAIN --> EP[e.pipeline]
-    EP --> ENGINES
+    P --> B[BRAIN]
+    P --> M[MEMORY]
 
-    ENGINES --> CP[c.pipeline]
-    CP --> CALCULATORS
+    B --> EP[e.pipeline]
+    EP --> E[ENGINE]
 
-    CALCULATORS --> REGISTER
-    CALCULATORS --> BLOCKS
+    E --> CP[c.pipeline]
+    CP --> C[CALCULATOR / FILE]
 
-    REGISTER --> STATES
+    C --> R[REGISTER]
+    R --> S[STATES]
 
-    BLOCKS --> ACTION
-    BLOCKS --> LOGIC
-    BLOCKS --> MUX
-    BLOCKS --> TRANSITION
-    BLOCKS --> CONSTANT
-    BLOCKS --> STATELOAD
-    BLOCKS --> EXECUTE
+    C --> BL[BLOCK]
 
-    LOGIC --> LOGIC0
-    LOGIC --> LOGIC1
-    LOGIC --> LOGIC2
+    BL --> A[ACTION]
+    A --> CO[CONTRACTS]
+    A --> BI[BUILT-INS]
 
-    MUX --> CONTEXT
+    BL --> L0[logic0]
+    BL --> L1[logic1]
+    BL --> L2[logic2]
 
-    EXECUTE --> CLOCK
-    EXECUTE --> ANTICLOCK
+    BL --> MX[mux]
+    MX --> CT[context]
 
-    STATELOAD --> MEMORY
+    BL --> T[transition]
+    BL --> K[constant]
+    BL --> SL[state load]
+    BL --> EX[execute]
+
+    EX --> CL[clock]
+    EX --> AC[anticlock]
+
+    SL --> M
 ```
 
 obviously i havent included the actual necessities of a project. maybe you're using this for web development and have html and css. or for something else, alongside another language. this is simply what the structure of the CHAOS part looks like. somewhat. 
