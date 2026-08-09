@@ -16,7 +16,7 @@ im a student, not an employee. i dont NEED industry standards, i want what i bui
 
 so, ahem, say hello to chaos. this wi;ll be my document to track my progress of building the chaos language and eventually the CLI for it, because i suck at keeping physical notes (god bless the times i stared at my own handwriting in utter devastation). at least here, the words are legible, even if nonsensical, rambling, or too philosophical at time.
 
-Friday, August 7, 2026
+## Friday, August 7, 2026
 Chaos has a few words in its vocabulary now, and they're all based on a computer's hardware. this makes it rather confusing for someone who KNOWS about hardware to use this language, cause similar words mean slightly different things, but hey, that's the fun part about languages. it has to confuse you for a bit with synonyms before enlightening you.
 
 the most basic element of chaos is logic. logic0, to be specific. i'll explain in a bit. logic0, logic1, contracts, action, and sometimes mux + context, makes up a block. a block is something like a combinational device. it is a fully operational thing, a gear in a machine. the machine itself is a calculator (because it works like an actual calculator does). it can do operations, compute things, etc., but to make it BETTER than a normal calculator, you can give it a register. this is where it stores data, as states, in case you need to collect data and then use it elsewhere and then change it and store again and so on. 
@@ -55,3 +55,41 @@ now let's look at the basic blocks as of today:
 23. constant - allows you to declare a block-use value so it doesn't have to call the register or memory.
 
 it'll change and evolve and grow over time, for sure. but let this remain here as a small reminder of where i started on this journey.
+
+## Sunday, August 9
+think i've decided on the syntax for version one. almost. still missing a few more terms but like, this one works. im sure of it. 
+
+| Syntax       | Purpose                                                                                                                                                                                                     |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `logic0`     | Primitive logic question/decision.                                                                                                                                                                          |
+| `logic1`     | Creates a loop/repetition when necessary.                                                                                                                                                                   |
+| `logic2`     | Creates temporary cache/retained information, effectively acting as a mini-register for the relevant computation.                                                                                           |
+| `mux`        | Replaces `logic0` when an operation requires state/context changes.                                                                                                                                         |
+| `context`    | Provides the contextual information associated with each state within a `mux`.                                                                                                                              |
+| `action`     | The main operational component of a block. Built from contracts and built-ins.                                                                                                                              |
+| `contract`   | A predefined small reusable function/instruction.                                                                                                                                                           |
+| `built-in`   | A larger/native reusable operation that can function independently rather than needing to be assembled from smaller contracts.                                                                              |
+| `execute`    | Triggers execution of a block.                                                                                                                                                                              |
+| `clock`      | Execution follows the established flow/order.                                                                                                                                                               |
+| `anticlock`  | Execution proceeds independently of the established flow/order. If no execution mode follows `execute`, `clock` is assumed.                                                                                 |
+| `c.pipeline` | Connects calculators/files together into an engine.                                                                                                                                                         |
+| `e.pipeline` | Connects engines to the central brain.                                                                                                                                                                      |
+| `register`   | Small working storage declared at the top of a calculator.                                                                                                                                                  |
+| `state`      | The name/concept for data stored in the register.                                                                                                                                                           |
+| `transition` | Defines the rules governing how a state may change in response to inputs/conditions.                                                                                                                        |
+| `memory`     | Central project-level storage, essentially a project database for large data such as lists and tables. Accessible by blocks.                                                                                |
+| `state load` | Pulls data from central `memory` for use by a block.                                                                                                                                                        |
+| `constant`   | Block-level fixed data. A constant can hold a specific declared value, such as `x = 5`, which remains fixed for that block. A constant can also be configured to use the latest value retained by `logic2`. |
+| `list`       | Ordered collection with automatically assigned positions beginning at `0`. Essentially Chaos's abstraction of an array.                                                                                     |
+| `linkedlist` | Conventional linked list.                                                                                                                                                                                   |
+| `stack`      | Collection following `push`/`pop` semantics. LIFO.                                                                                                                                                          |
+| `queue`      | Collection following FIFO semantics. Exact Chaos operation words are not yet decided.                                                                                                                       |
+| `tree`       | Hierarchical binary-tree storage. Exact operation terminology is not yet decided.                                                                                                                           |
+| `branch`     | Enhanced binary-search/decision structure using progressive halving to eliminate possibilities during searches. Exact construction/search terminology is not yet decided.                                   |
+| `encode`     | Named mathematical function whose definition contains mathematical syntax.                                                                                                                                  |
+| `decode`     | Named mathematical function whose definition contains mathematical syntax.                                                                                                                                  |
+| `sequence`   | Mathematical construct for mathematical processes that don't belong inside `encode`/`decode`.                                                                                                               |
+
+now lies before the daunting task of tackling C for actually making this work. damn.
+
+i should've stuck to building a CLI with Rust. oh well.
