@@ -14,6 +14,7 @@
 <div align="center">
 
 ![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
+![C](https://img.shields.io/badge/C-000000?style=for-the-badge&logo=c&logoColor=white)
 
 </div>
 
@@ -21,46 +22,175 @@
 
 # Chaos
 
-> Build software the way you think.
+Chaos is a programming language designed around computational structures rather than conventional programming-language syntax.
 
-Chaos is an experiment in making software development feel closer to engineering than configuration.
+It began from a simple frustration: having to memorize different syntax and programming conventions for every language and tool used in software development. Chaos explores whether programming can instead be expressed through a smaller set of clear, composable concepts.
 
-Version 1 begins as a pocket tool for web developers. It scaffolds complete projects, wires together modern frameworks, installs dependencies, prepares documentation, and removes repetitive setup so developers can focus on building.
+The goal is not to make programming "easier" by hiding computation. It is to make the structure of computation easier to express.
 
-But that is only the first step.
+## Version 1
 
-Chaos is a long-term exploration into a unified computing environment, where programming, project management, documentation, version control, automation, and eventually systems programming exist as parts of one coherent machine instead of dozens of disconnected tools.
+Chaos v1 is a functional programming language. Its core model is built around calculators, registers, states, blocks, actions, logic, transitions, memory, and reusable contracts.
 
-The guiding philosophy is simple:
+A Chaos project contains:
+
+* one **brain**, the project's central computational component
+* one **memory**, the project's central data storage
+* multiple **calculators**, which are individual Chaos files
+* registers containing the active states of each calculator
+* blocks containing the operations that make up a program
+
+The core logic primitives are:
+
+* `logic0` — primitive conditional logic
+* `logic1` — repetition and loops
+* `logic2` — temporary retention and cache
+* `mux` — contextual state switching
+* `context` — contextual information used by `mux`
+
+Blocks are built primarily from:
+
+* `action` — operations composed from contracts and built-ins
+* `contract` — predefined reusable functions or instructions
+* `built-in` — larger language-provided operations
+* `transition` — rules governing state changes
+* `constant` — block-specific fixed data
+* `state load` — retrieval of project data from memory
+* `execute` — execution of a block
+* `clock` — execution following the normal flow
+* `anticlock` — execution independently of the normal flow
+
+Calculators can be connected into engines using `c.pipeline`, while engines connect to the project's central brain through `e.pipeline`.
+
+The language also provides common data structures such as lists, linked lists, stacks, queues, trees, and branches.
+
+The core syntax is intentionally small. Much of Chaos's practical functionality comes from its libraries of contracts, transitions, contexts, and built-ins rather than from an ever-growing collection of primitive language instructions.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    P[PROJECT]
+
+    P --> B[BRAIN]
+    P --> M[MEMORY]
+
+    B --> EP[e.pipeline]
+    EP --> E[ENGINE]
+
+    E --> CP[c.pipeline]
+    CP --> C[CALCULATOR / FILE]
+
+    C --> R[REGISTER]
+    R --> S[STATES]
+
+    C --> BL[BLOCK]
+
+    BL --> A[ACTION]
+    A --> CO[CONTRACTS]
+    A --> BI[BUILT-INS]
+
+    BL --> L0[logic0]
+    BL --> L1[logic1]
+    BL --> L2[logic2]
+
+    BL --> MX[mux]
+    MX --> CT[context]
+
+    BL --> T[transition]
+    BL --> K[constant]
+    BL --> SL[state load]
+    BL --> EX[execute]
+
+    EX --> CL[clock]
+    EX --> AC[anticlock]
+
+    SL --> M
+```
+
+## Beyond Version 1
+
+Chaos is intended to grow as a computational environment rather than remain only a programming language.
+
+Version 2 will introduce the Chaos CLI.
+
+Later versions will introduce separate computational domains rather than forcing every capability into the core language.
+
+The first major expansion is mathematics.
+
+The mathematical layer will introduce named mathematical functions through `encode` and `decode`, while `sequence` will provide a place for mathematical processes that do not naturally belong within those functions.
+
+Future domains may include:
+
+* mathematics
+* physics
+* scientific computing
+* astrophysics
+* quantum computation
+* hardware-oriented programming
+* scientific visualization
+
+The intention is for these domains to build upon Chaos Core while remaining conceptually separate from it. A developer writing an ordinary application should not need to carry an entire mathematical or physics language around with them.
+
+The long-term ambition is considerably larger:
+
+```text
+Chaos
+  ↓
+programming language
+  ↓
+computational environment
+  ↓
+Chaos applications
+  ↓
+Chaos ecosystem
+  ↓
+Chaos-centric operating environment
+```
+
+That is a long way off. For now, the objective is considerably less glamorous:
+
+**Make Chaos v1 work.**
+
+## Philosophy
+
+Chaos is based on a few principles:
 
 * Complexity should be distributed into small, understandable components.
-* Every component should have a clear contract.
-* Larger systems should emerge by composing smaller ones.
-* The computer should adapt to human thought, not the other way around.
+* Components should have clear purposes and interfaces.
+* Larger behaviour should emerge from composition.
+* Domain-specific capabilities should remain separate from the language core.
+* The computer should adapt to human thought rather than forcing humans to think in arbitrary syntax.
 
-Current research draws inspiration from digital systems, compiler construction, operating systems, natural language processing, and software engineering. As these ideas mature, they will shape the Chaos language itself: a language designed around computation and contracts rather than the syntax of existing programming languages.
+Chaos is not intended to hide computation from the programmer. It is intended to provide a computational model that is easier to reason about directly.
 
-Chaos is not trying to replace the software ecosystem overnight.
+## Why Chaos Exists
 
-Version 1 embraces existing tools like Git, Docker, Visual Studio Code, Django, Next.js, and many others. Future versions will gradually absorb more responsibilities where doing so creates a simpler, more coherent developer experience.
+Chaos started because I got tired of memorizing different syntax for every programming language I had to use.
 
-This repository documents that journey.
+As a software developer, I found myself spending an unreasonable amount of time remembering whether some particular thing required a certain keyword, punctuation mark, syntax pattern, library call, framework convention, or entirely different language.
 
-## Note
+At some point I decided that, instead of complaining about it, I could try designing the language I actually wanted to use.
 
-This project is actually a result of my incredible laziness to memorize different syntax for all the languages we
-have to use in our daily lives even as a simple web developer. Forget creating video games (my dreams of making a
-cosy life simulator long trashed), I couldn't even be bothered to fix the website I'd created myself. This, of
-course, wasn't due to my inability to 'fix' any bugs - I was simply insistent on the fact that if I am doing
-programming, I must be able to do it like in the movies. Just open a terminal and start typing, like a genius. 
+The result is Chaos.
 
-Chaos serves that purpose, but in making it, I've certainly felt like a total loser, not knowing how most of Rust
-works (WHY am I borrowing things is this a fucking bank vs Real Estate guide), or figuring out what would work for a
-somewhat universal translation layer, and so on. 
+It is an experiment in whether programming can be expressed through computational concepts rather than through the accumulated historical baggage of programming-language syntax.
 
-But in the end, I hope this achieves for me the dream of becoming a disney-channel type 'hacker' - effortless
-programming, no need to spend hours scrolling through google or relying on generative AI for simple syntax (that my
-brain refuses to remember).
+I am also making this while learning how languages, compilers, runtimes, and computer systems actually work, so some of the architecture will undoubtedly evolve as the implementation catches up with the ideas.
+
+That is part of the project.
+
+## Current Implementation
+
+Chaos itself is being implemented in **C**.
+
+The CLI is planned to be implemented separately in **Rust** for Version 2.
+
+The current priority is the Chaos language itself. The first milestone is a working implementation capable of parsing and executing real Chaos programs.
+
+The larger ambitions can wait.
+
+One programming language at a time.
 
 ---
 
