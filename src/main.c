@@ -1,34 +1,25 @@
 #include <stdio.h>
-
-int check_answer(int answer)
-{
-    if (answer == 1)
-    {
-        return 1;
-    }
-    else
-    {
-        return 0;
-    }
-}
+#include "parser.h"
 
 int main(void)
 {
-    int answer;
+    FILE *file;
+    char line[256];
 
-    printf("Enter a number: ");
-    scanf("%d", &answer);
+    file = fopen("test.chaos", "r");
 
-    int result = check_answer(answer);
-
-    if (result == 1)
+    if (file == NULL)
     {
-        printf("yes\n");
+        printf("Could not open test.chaos\n");
+        return 1;
     }
-    else
+
+    while (fgets(line, sizeof(line), file) != NULL)
     {
-        printf("no\n");
+        parse_chaos(line);
     }
+
+    fclose(file);
 
     return 0;
 }
