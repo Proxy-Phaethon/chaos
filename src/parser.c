@@ -2,7 +2,7 @@
 #include <string.h>
 #include "parser.h"
 #include "logic0.h"
-#include "builtins.h"
+#include "runtime.h"
 
 void parse_chaos(const char *line)
 {
@@ -23,13 +23,6 @@ void parse_chaos(const char *line)
     }
     else
     {
-        BuiltinFunction builtin = find_builtin(line);
-
-        if (builtin != NULL)
-        {
-            const char *result = builtin(logic0_value());
-
-            printf("%s\n", result);
-        }
+        execute_line(line);
     }
 }

@@ -1,7 +1,16 @@
 #include <stdio.h>
 #include "runtime.h"
+#include "logic0.h"
+#include "builtins.h"
 
-void runtime_start(void)
+void execute_line(const char *line)
 {
-    printf("Chaos runtime initialized.\n");
+    BuiltinFunction builtin = find_builtin(line);
+
+    if (builtin != NULL)
+    {
+        const char *result = builtin(logic0_value());
+
+        printf("%s\n", result);
+    }
 }

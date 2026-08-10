@@ -1,6 +1,6 @@
 #ifndef RUNTIME_H
 #define RUNTIME_H
 
-void runtime_start(void);
+void execute_line(const char *line);
 
 #endif
