@@ -137,3 +137,8 @@ flowchart TD
 ```
 
 obviously i havent included the actual necessities of a project. maybe you're using this for web development and have html and css. or for something else, alongside another language. this is simply what the structure of the CHAOS part looks like. somewhat. 
+
+## Monday, 10th August
+today, the first bit of Chaos is being made (or at least i'm attempting to do so). logic0 is a primitive, and conceptually very simple. it asks a question, gets an input, sends that input to whatever little function was declared to do sanitization or verification, and then receives the new output, checks it against its allowed actions, and proceeds to the next step.
+
+C, however, is terrible. goddammit.
