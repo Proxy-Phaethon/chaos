@@ -1,15 +1,34 @@
 #include <stdio.h>
-#include "chaos.h"
-#include "runtime.h"
 
-void chaos_start(void)
+int check_answer(int answer)
 {
-    printf("Chaos is alive.\n");
-    runtime_start();
+    if (answer == 1)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 int main(void)
 {
-    chaos_start();
+    int answer;
+
+    printf("Enter a number: ");
+    scanf("%d", &answer);
+
+    int result = check_answer(answer);
+
+    if (result == 1)
+    {
+        printf("yes\n");
+    }
+    else
+    {
+        printf("no\n");
+    }
+
     return 0;
 }
