@@ -1,44 +1,21 @@
-#include <ctype.h>
-#include <string.h>
 #include "resolver.h"
+#include "conditions.h"
 
 Resolution resolve(const char *output)
 {
     Resolution result;
     result.count = 0;
 
-    int is_empty = 1;
-    int is_number = 1;
-    int is_word = 1;
+    int i = 0;
 
-    for (int i = 0; output[i] != '\0'; i++)
+    while (conditions[i].name != NULL)
     {
-        is_empty = 0;
-
-        if (!isdigit((unsigned char)output[i]))
+        if (conditions[i].function(output))
         {
-            is_number = 0;
+            result.conditions[result.count++] = conditions[i].name;
         }
 
-        if (!isalpha((unsigned char)output[i]))
-        {
-            is_word = 0;
-        }
-    }
-
-    if (is_empty)
-    {
-        result.conditions[result.count++] = "empty";
-    }
-
-    if (is_number)
-    {
-        result.conditions[result.count++] = "number";
-    }
-
-    if (is_word)
-    {
-        result.conditions[result.count++] = "word";
+        i++;
     }
 
     return result;
