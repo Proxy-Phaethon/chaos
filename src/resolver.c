@@ -1,5 +1,6 @@
 #include "resolver.h"
 #include "conditions.h"
+#include <stddef.h>
 
 Resolution resolve(const char *output)
 {
