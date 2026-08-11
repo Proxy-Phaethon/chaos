@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h>
 #include "parser.h"
 
 int parse_chaos(const char *line, char *question, int size)
@@ -31,4 +32,37 @@ int parse_chaos(const char *line, char *question, int size)
     question[length] = '\0';
 
     return 1;
+}
+
+int parse_call(const char *line, char builtins[][64], int max_builtins)
+{
+    char buffer[256];
+    char *token;
+    int count = 0;
+
+    if (strncmp(line, "call ", 5) != 0)
+    {
+        return 0;
+    }
+
+    strncpy(buffer, line + 5, sizeof(buffer) - 1);
+    buffer[sizeof(buffer) - 1] = '\0';
+
+    token = strtok(buffer, ",\n");
+
+    while (token != NULL && count < max_builtins)
+    {
+        while (*token == ' ')
+        {
+            token++;
+        }
+
+        strncpy(builtins[count], token, 63);
+        builtins[count][63] = '\0';
+
+        count++;
+        token = strtok(NULL, ",\n");
+    }
+
+    return count;
 }
