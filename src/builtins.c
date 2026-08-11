@@ -17,6 +17,12 @@ static char *sanitizer(const char *input)
 {
     int j = 0;
 
+    if (strlen(input) > 20)
+    {
+        strcpy(sanitizer_output, "invalid");
+        return sanitizer_output;
+    }
+
     for (int i = 0; input[i] != '\0' && j < 255; i++)
     {
         if (!isspace((unsigned char)input[i]))

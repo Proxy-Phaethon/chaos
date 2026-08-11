@@ -4,5 +4,6 @@
 #include "parser.h"
 
 void run_statement(Statement *statement, char *value, int size);
+int condition_matches(const char *value, const char *condition);
 
 #endif

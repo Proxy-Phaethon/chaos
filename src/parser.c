@@ -3,6 +3,15 @@
 
 int parse_line(const char *line, Statement *statement)
 {
+    char cleaned_line[256];
+
+    strncpy(cleaned_line, line, sizeof(cleaned_line) - 1);
+    cleaned_line[sizeof(cleaned_line) - 1] = '\0';
+
+    cleaned_line[strcspn(cleaned_line, "\r\n")] = '\0';
+
+    line = cleaned_line;
+
     statement->type = STATEMENT_NONE;
     statement->value[0] = '\0';
 
