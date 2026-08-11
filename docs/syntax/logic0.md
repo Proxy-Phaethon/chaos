@@ -37,3 +37,16 @@ that is it.
 now for an action to proceed, it relies on the third library, the contracts. this is like a smaller version of the built-ins. while the built-ins can do larger tasks like fully validate an input, a contract is only a line or two of code at best. it allows you to create a custom 'action' of your own, if any built-in doesn't satisfy you.
 
 but, of course, if you are lazy, you can use a contract directly instead of an action, like the last else statement using 'terminate'. 
+
+## 1.13 p.m. IST
+ok, logic0 is functional as a basic thing. notes to myself:
+Hardcoded:
+    branch structure
+    branch body types
+    one statement per branch
+    buffer sizes
+    statement dispatch
+
+these need to be changed along the road.
+
+but first, i'll work on the three libraries to make them have more useful content.
