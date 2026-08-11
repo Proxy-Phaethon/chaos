@@ -1,15 +1,13 @@
 #include <stdio.h>
 #include "parser.h"
 #include "runtime.h"
-#include "logic0.h"
 
 int main(int argc, char *argv[])
 {
     FILE *file;
     char line[256];
-    char question[256];
-    char builtins[10][64];
     char value[256] = "";
+    Statement statement;
 
     if (argc < 2)
     {
@@ -27,18 +25,9 @@ int main(int argc, char *argv[])
 
     while (fgets(line, sizeof(line), file) != NULL)
     {
-        if (parse_chaos(line, question, sizeof(question)))
+        if (parse_line(line, &statement))
         {
-            run_logic0(question, value, sizeof(value));
-        }
-
-        int count = parse_call(line, builtins, 10);
-
-        if (count > 0)
-        {
-            run_builtins(builtins, count, value, sizeof(value));
-
-            printf("Result: %s\n", value);
+            run_statement(&statement, value, sizeof(value));
         }
     }
 
