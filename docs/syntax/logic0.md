@@ -28,12 +28,12 @@ once logic0's question gets an input, it is stored as a temporary value. this va
 
 however, before the output reaches logic0, it must go through a condition resolver.
 
-see 'word' and 'number' in the if-else statements? those are conditions, and logic0 doesn't know anything aside from a condition. it cannot receive 'hallelujah' and know that this is a word. the condition resolver must do that, and send to logic0 the possible conditions that an input matches with.
+see 'word' and 'number' in the if-else statements? those are conditions, the second library, and logic0 doesn't know anything aside from a condition. it cannot receive 'hallelujah' and know that this is a word. the condition resolver must do that, and send to logic0 the possible conditions that an input matches with.
 
 once the logic0 receives the conditions, it's simple. it matches the condition to the ones it has been given. if it matches, the action proceeds. if it doesn't, the action is invalid and terminates.
 
 that is it. 
 
-now for an action to proceed, it relies on the second library, the contracts. this is like a smaller version of the built-ins. while the built-ins can do larger tasks like fully validate an input, a contract is only a line or two of code at best. it allows you to create a custom 'action' of your own, if any built-in doesn't satisfy you.
+now for an action to proceed, it relies on the third library, the contracts. this is like a smaller version of the built-ins. while the built-ins can do larger tasks like fully validate an input, a contract is only a line or two of code at best. it allows you to create a custom 'action' of your own, if any built-in doesn't satisfy you.
 
 but, of course, if you are lazy, you can use a built-in instead of an action, like the last else statement using 'terminate'. 
