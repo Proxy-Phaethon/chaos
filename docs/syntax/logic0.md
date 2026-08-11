@@ -22,7 +22,7 @@ else,
 
 that concludes a logic0. the text inside single quotes in the parenthesis signifies the text that will be printed as a question. logic0 doesn't really care what the question is - it only cares about the answers. the question is for humans to see and answer to.
 
-the call line signals that the following words are 'built-ins', the first significant library of chaos. built-ins are basically little workers in C that you can call to do preliminary actions without having to type the code yourself. so 'sanitizer' makes sure the input is valid, not too long, not secretly a SQL injection, etc.
+the call line signals that the following words are 'built-ins', the first significant library of chaos. built-ins are basically little workers in C that you can call to do operational actions without having to type the code yourself. so 'sanitizer' makes sure the input is valid, not too long, not secretly a SQL injection, etc.
 
 once logic0's question gets an input, it is stored as a temporary value. this value is sent to the called built-ins after they've been looked up in the built-in registry and confirmed to exist. the built-ins receive the value, do their thing, and send back the output.
 
