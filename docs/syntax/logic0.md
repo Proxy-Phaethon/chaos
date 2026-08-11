@@ -30,7 +30,7 @@ however, before the output reaches logic0, it must go through a condition resolv
 
 see 'word' and 'number' in the if-else statements? those are conditions, the second library, and logic0 doesn't know anything aside from a condition. it cannot receive 'hallelujah' and know that this is a word. the condition resolver must do that, and send to logic0 the possible conditions that an input matches with.
 
-once the logic0 receives the conditions, it's simple. it matches the condition to the ones it has been given. if it matches to any of them, the action proceeds. if it doesn't, the action is invalid and terminates.
+once the logic0 receives the conditions, it's simple. it matches the conditions to the ones it has been given. if a condition matches, the corresponding action proceeds. if none of the given conditions match, the action is invalid and terminates.
 
 that is it. 
 
