@@ -1,68 +1,97 @@
 #include <string.h>
-#include <stdlib.h>
 #include "parser.h"
 
-int parse_chaos(const char *line, char *question, int size)
+int parse_line(const char *line, Statement *statement)
 {
-    const char *start;
-    const char *end;
-    int length;
+    statement->type = STATEMENT_NONE;
+    statement->value[0] = '\0';
 
-    if (strncmp(line, "logic0 ('", 9) != 0)
+    if (strncmp(line, "logic0 ('", 9) == 0)
     {
-        return 0;
-    }
+        const char *start = line + 9;
+        const char *end = strrchr(start, '\'');
 
-    start = line + 9;
-    end = strrchr(start, '\'');
-
-    if (end == NULL)
-    {
-        return 0;
-    }
-
-    length = end - start;
-
-    if (length >= size)
-    {
-        return 0;
-    }
-
-    strncpy(question, start, length);
-    question[length] = '\0';
-
-    return 1;
-}
-
-int parse_call(const char *line, char builtins[][64], int max_builtins)
-{
-    char buffer[256];
-    char *token;
-    int count = 0;
-
-    if (strncmp(line, "call ", 5) != 0)
-    {
-        return 0;
-    }
-
-    strncpy(buffer, line + 5, sizeof(buffer) - 1);
-    buffer[sizeof(buffer) - 1] = '\0';
-
-    token = strtok(buffer, ",\n");
-
-    while (token != NULL && count < max_builtins)
-    {
-        while (*token == ' ')
+        if (end == NULL)
         {
-            token++;
+            return 0;
         }
 
-        strncpy(builtins[count], token, 63);
-        builtins[count][63] = '\0';
+        int length = end - start;
 
-        count++;
-        token = strtok(NULL, ",\n");
+        if (length >= 256)
+        {
+            return 0;
+        }
+
+        strncpy(statement->value, start, length);
+        statement->value[length] = '\0';
+        statement->type = STATEMENT_LOGIC0;
+
+        return 1;
     }
 
-    return count;
+    if (strncmp(line, "call ", 5) == 0)
+    {
+        strncpy(statement->value, line + 5, 255);
+        statement->value[255] = '\0';
+
+        statement->type = STATEMENT_CALL;
+        return 1;
+    }
+
+    if (strncmp(line, "if ", 3) == 0)
+    {
+        strncpy(statement->value, line + 3, 255);
+        statement->value[255] = '\0';
+
+        statement->type = STATEMENT_IF;
+        return 1;
+    }
+
+    if (strncmp(line, "else if ", 8) == 0)
+    {
+        strncpy(statement->value, line + 8, 255);
+        statement->value[255] = '\0';
+
+        statement->type = STATEMENT_ELSE_IF;
+        return 1;
+    }
+
+    if (strncmp(line, "else", 4) == 0)
+    {
+        statement->type = STATEMENT_ELSE;
+        return 1;
+    }
+
+    if (strncmp(line, "action ('", 9) == 0)
+    {
+        const char *start = line + 9;
+        const char *end = strrchr(start, '\'');
+
+        if (end == NULL)
+        {
+            return 0;
+        }
+
+        int length = end - start;
+
+        if (length >= 256)
+        {
+            return 0;
+        }
+
+        strncpy(statement->value, start, length);
+        statement->value[length] = '\0';
+        statement->type = STATEMENT_ACTION;
+
+        return 1;
+    }
+
+    if (strncmp(line, "terminate", 9) == 0)
+    {
+        statement->type = STATEMENT_TERMINATE;
+        return 1;
+    }
+
+    return 0;
 }
