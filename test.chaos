@@ -1,1 +1,2 @@
 logic0 ('What is your name?')
+call metastable, sanitizer
