@@ -14,10 +14,13 @@ static void contract_terminate(const char *input)
     exit(0);
 }
 
+//add new contract here
+
 Contract contracts[] =
 {
     {"print", contract_print},
     {"terminate", contract_terminate},
+    //add new contract here
     {NULL, NULL}
 };
 
