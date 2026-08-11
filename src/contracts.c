@@ -14,12 +14,20 @@ static void contract_terminate(const char *input)
     exit(0);
 }
 
+static void contract_double(const char *input)
+{
+    int value = atoi(input);
+
+    printf("%d\n", value * 2);
+}
+
 //add new contract here
 
 Contract contracts[] =
 {
     {"print", contract_print},
     {"terminate", contract_terminate},
+    {"double", contract_double},
     //add new contract here
     {NULL, NULL}
 };
