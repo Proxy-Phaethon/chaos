@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "parser.h"
+#include "runtime.h"
 
 int main(int argc, char *argv[])
 {
@@ -7,6 +8,7 @@ int main(int argc, char *argv[])
     char line[256];
     char question[256];
     char builtins[10][64];
+    char value[256] = "hello world";
 
     if (argc < 2)
     {
@@ -33,10 +35,9 @@ int main(int argc, char *argv[])
 
         if (count > 0)
         {
-            for (int i = 0; i < count; i++)
-            {
-                printf("Built-in: %s\n", builtins[i]);
-            }
+            run_builtins(builtins, count, value, sizeof(value));
+
+            printf("Result: %s\n", value);
         }
     }
 
