@@ -36,4 +36,4 @@ that is it.
 
 now for an action to proceed, it relies on the third library, the contracts. this is like a smaller version of the built-ins. while the built-ins can do larger tasks like fully validate an input, a contract is only a line or two of code at best. it allows you to create a custom 'action' of your own, if any built-in doesn't satisfy you.
 
-but, of course, if you are lazy, you can use a built-in instead of an action, like the last else statement using 'terminate'. 
+but, of course, if you are lazy, you can use a contract directly instead of an action, like the last else statement using 'terminate'. 
