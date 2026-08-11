@@ -142,3 +142,18 @@ obviously i havent included the actual necessities of a project. maybe you're us
 today, the first bit of Chaos is being made (or at least i'm attempting to do so). logic0 is a primitive, and conceptually very simple. it asks a question, gets an input, sends that input to whatever little function was declared to do sanitization or verification, and then receives the new output, checks it against its allowed actions, and proceeds to the next step.
 
 C, however, is terrible. goddammit.
+
+## Tuesday, 11th August
+the more i work on this the more i realize that it is lacking something vital. the world is stubborn in its rules, and one person alone cant change it. you need a movement, a revolution, a mass moving as one. 
+
+i, unfortunately, am far too reserved to ever create nor join such a movement. i cant even talk to my childhood friend without staring at the sky in wonder at my deteriorating social skills.
+
+that aside, reagrding chaos specifically, this made me realize one thing - as a project, sure, it might be useful on my portfolio. but as a tool? very unlikely. 
+
+so chaos cannot be simply just a language. it cannot simply just remove the repetitions and boilerplates of programming and be successful. it needs to be useful to ME, as well as others who have the same aversion to syntax that i do.
+
+in that i have gone full circle and landed back on making chaos a universal transpiler of sorts.
+
+it will remain a programming language in structure, but get an additional layer through its dedicated CLI - a system that translates the pure chaos code into whatever target language is required by your hiring company. 
+
+the world of capitalism may fall soon, but we still need to survive to see that, and a common person needs money, a job. including me.
