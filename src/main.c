@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "parser.h"
 #include "runtime.h"
+#include "logic0.h"
 
 int main(int argc, char *argv[])
 {
@@ -8,7 +9,7 @@ int main(int argc, char *argv[])
     char line[256];
     char question[256];
     char builtins[10][64];
-    char value[256] = "hello world";
+    char value[256] = "";
 
     if (argc < 2)
     {
@@ -28,7 +29,7 @@ int main(int argc, char *argv[])
     {
         if (parse_chaos(line, question, sizeof(question)))
         {
-            printf("%s\n", question);
+            run_logic0(question, value, sizeof(value));
         }
 
         int count = parse_call(line, builtins, 10);
