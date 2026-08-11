@@ -3,6 +3,7 @@
 
 #include "parser.h"
 
+void run_program(Statement *statements, int count, char *value, int size);
 void run_statement(Statement *statement, char *value, int size);
 int condition_matches(const char *value, const char *condition);
 

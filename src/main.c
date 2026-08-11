@@ -7,7 +7,8 @@ int main(int argc, char *argv[])
     FILE *file;
     char line[256];
     char value[256] = "";
-    Statement statement;
+    Statement statements[256];
+    int statement_count = 0;
 
     if (argc < 2)
     {
@@ -25,13 +26,21 @@ int main(int argc, char *argv[])
 
     while (fgets(line, sizeof(line), file) != NULL)
     {
-        if (parse_line(line, &statement))
+        if (statement_count >= 256)
         {
-            run_statement(&statement, value, sizeof(value));
+            printf("Too many statements.\n");
+            break;
+        }
+
+        if (parse_line(line, &statements[statement_count]))
+        {
+            statement_count++;
         }
     }
 
     fclose(file);
+
+    run_program(statements, statement_count, value, sizeof(value));
 
     return 0;
 }

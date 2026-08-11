@@ -11,6 +11,10 @@ int parse_line(const char *line, Statement *statement)
     cleaned_line[strcspn(cleaned_line, "\r\n")] = '\0';
 
     line = cleaned_line;
+    while (*line == ' ' || *line == '\t')
+    {
+        line++;
+    }
 
     statement->type = STATEMENT_NONE;
     statement->value[0] = '\0';

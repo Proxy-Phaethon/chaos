@@ -5,6 +5,7 @@
 #include "logic0.h"
 #include "builtins.h"
 #include "resolver.h"
+#include "contracts.h"
 
 int condition_matches(const char *value, const char *condition)
 {
@@ -78,17 +79,106 @@ void run_statement(Statement *statement, char *value, int size)
         }
 
         case STATEMENT_IF:
-            if (condition_matches(value, statement->value))
+            break;
+
+        case STATEMENT_ACTION:
+        {
+            ContractFunction function = find_contract(statement->value);
+
+            if (function == NULL)
             {
-                printf("Condition matched: %s\n", statement->value);
+                printf("Unknown contract: %s\n", statement->value);
+                break;
             }
-            else
-            {
-                printf("Condition did not match: %s\n", statement->value);
-            }
+
+            function(value);
+            break;
+        }
+
+        case STATEMENT_TERMINATE:
+            printf("Action terminated.\n");
             break;
 
         default:
             break;
+    }
+}
+
+void run_program(Statement *statements, int count, char *value, int size)
+{
+    int i = 0;
+
+    while (i < count)
+    {
+        if (statements[i].type == STATEMENT_IF)
+        {
+            int branch_matched = 0;
+
+            if (condition_matches(value, statements[i].value))
+            {
+                branch_matched = 1;
+
+                if (i + 1 < count &&
+                    (statements[i + 1].type == STATEMENT_ACTION ||
+                     statements[i + 1].type == STATEMENT_TERMINATE))
+                {
+                    run_statement(&statements[i + 1], value, size);
+                }
+
+                i += 2;
+            }
+            else
+            {
+                i += 2;
+
+                while (i < count &&
+                       statements[i].type == STATEMENT_ELSE_IF)
+                {
+                    if (condition_matches(value, statements[i].value))
+                    {
+                        branch_matched = 1;
+
+                        if (i + 1 < count &&
+                            (statements[i + 1].type == STATEMENT_ACTION ||
+                             statements[i + 1].type == STATEMENT_TERMINATE))
+                        {
+                            run_statement(&statements[i + 1], value, size);
+                        }
+
+                        i += 2;
+                        break;
+                    }
+
+                    i += 2;
+                }
+            }
+
+            if (!branch_matched &&
+                i < count &&
+                statements[i].type == STATEMENT_ELSE)
+            {
+                if (i + 1 < count &&
+                    (statements[i + 1].type == STATEMENT_ACTION ||
+                     statements[i + 1].type == STATEMENT_TERMINATE))
+                {
+                    run_statement(&statements[i + 1], value, size);
+                }
+
+                i += 2;
+            }
+
+            while (branch_matched &&
+                   i < count &&
+                   (statements[i].type == STATEMENT_ELSE_IF ||
+                    statements[i].type == STATEMENT_ELSE))
+            {
+                i += 2;
+            }
+
+            continue;
+        }
+
+        run_statement(&statements[i], value, size);
+        i++;
     }
 }
