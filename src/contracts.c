@@ -28,6 +28,13 @@ static void contract_clear(const char *input)
     printf("\033[2J\033[H");
 }
 
+static void contract_increment(const char *input)
+{
+    int value = atoi(input);
+
+    printf("%d\n", value + 1);
+}
+
 //add new contract here
 
 Contract contracts[] =
@@ -36,6 +43,7 @@ Contract contracts[] =
     {"terminate", contract_terminate},
     {"double", contract_double},
     {"clear", contract_clear},
+    {"increment", contract_increment},
     //add new contract here
     {NULL, NULL}
 };
