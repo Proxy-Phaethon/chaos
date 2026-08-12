@@ -84,6 +84,11 @@ static void contract_absolute(const char *input)
     printf("%d\n", abs(value));
 }
 
+static void contract_log(const char *input)
+{
+    printf("%s\n", input);
+}
+
 //add new contract here
 
 Contract contracts[] =
@@ -100,6 +105,7 @@ Contract contracts[] =
     {"halve", contract_halve},
     {"negate", contract_negate},
     {"absolute", contract_absolute},
+    {"log", contract_log},
     //add new contract here
     {NULL, NULL}
 };
