@@ -21,6 +21,13 @@ static void contract_double(const char *input)
     printf("%d\n", value * 2);
 }
 
+static void contract_clear(const char *input)
+{
+    (void)input;
+
+    printf("\033[2J\033[H");
+}
+
 //add new contract here
 
 Contract contracts[] =
@@ -28,6 +35,7 @@ Contract contracts[] =
     {"print", contract_print},
     {"terminate", contract_terminate},
     {"double", contract_double},
+    {"clear", contract_clear},
     //add new contract here
     {NULL, NULL}
 };
