@@ -77,6 +77,13 @@ static void contract_negate(const char *input)
     printf("%d\n", -value);
 }
 
+static void contract_absolute(const char *input)
+{
+    int value = atoi(input);
+
+    printf("%d\n", abs(value));
+}
+
 //add new contract here
 
 Contract contracts[] =
@@ -92,6 +99,7 @@ Contract contracts[] =
     {"square", contract_square},
     {"halve", contract_halve},
     {"negate", contract_negate},
+    {"absolute", contract_absolute},
     //add new contract here
     {NULL, NULL}
 };
