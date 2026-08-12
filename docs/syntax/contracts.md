@@ -2,7 +2,7 @@
 
 Contracts are executable actions available to Chaos programs.
 
-A contract receives the current value as input and performs an action. Contracts may display output, modify the environment, or produce some other observable effect.
+A contract receives the current value as input and performs an observable action.
 
 ## Current Contracts
 
@@ -10,59 +10,53 @@ A contract receives the current value as input and performs an action. Contracts
 
 Prints the current input value.
 
-Example:
-
-```text
-action ('print')
-```
-
-Input:
-
-```text
-hello
-```
-
-Output:
-
-```text
-hello
-```
-
----
-
 ### `double`
 
-Interprets the input as an integer and prints its value multiplied by two.
+Interprets the input as an integer and prints it multiplied by 2.
 
-Example:
+### `triple`
 
-```text
-action ('double')
-```
+Interprets the input as an integer and prints it multiplied by 3.
 
-Input:
+### `square`
 
-```text
-123
-```
+Interprets the input as an integer and prints its square.
 
-Output:
+### `halve`
 
-```text
-246
-```
+Interprets the input as an integer and prints it divided by 2 using integer division.
 
----
+### `increment`
+
+Interprets the input as an integer and prints it increased by 1.
+
+### `decrement`
+
+Interprets the input as an integer and prints it decreased by 1.
+
+### `negate`
+
+Interprets the input as an integer and prints its negated value.
+
+### `absolute`
+
+Interprets the input as an integer and prints its absolute value.
+
+### `reset`
+
+Ignores the current input and prints `0`.
+
+### `clear`
+
+Clears the terminal screen and moves the cursor to the top-left position.
+
+### `log`
+
+Prints the current input value as a log message.
 
 ### `terminate`
 
 Terminates the current action/program flow.
-
-Example:
-
-```text
-terminate
-```
 
 Current output:
 
@@ -71,88 +65,3 @@ Action terminated.
 ```
 
 ---
-
-### `increment`
-
-Interprets the input as an integer and prints its value increased by one.
-
-Example:
-
-```text
-action ('increment')
-```
-
-Input:
-
-```text
-123
-```
-
-Output:
-
-```text
-124
-```
-
----
-
-### `decrement`
-
-Interprets the input as an integer and prints its value decreased by one.
-
-Example:
-
-```text
-action ('decrement')
-```
-
-Input:
-
-```text
-123
-```
-
-Output:
-
-```text
-122
-```
-
----
-
-### `reset`
-
-Ignores the current input and prints `0`.
-
-Example:
-
-```text
-action ('reset')
-```
-
-Input:
-
-```text
-123
-```
-
-Output:
-
-```text
-0
-```
-
----
-
-### `clear`
-
-Clears the terminal screen and moves the cursor to the top-left position.
-
-Example:
-
-```text
-action ('clear')
-```
-
----
-
