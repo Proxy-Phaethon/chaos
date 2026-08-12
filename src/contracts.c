@@ -35,6 +35,13 @@ static void contract_increment(const char *input)
     printf("%d\n", value + 1);
 }
 
+static void contract_decrement(const char *input)
+{
+    int value = atoi(input);
+
+    printf("%d\n", value - 1);
+}
+
 //add new contract here
 
 Contract contracts[] =
@@ -44,6 +51,7 @@ Contract contracts[] =
     {"double", contract_double},
     {"clear", contract_clear},
     {"increment", contract_increment},
+    {"decrement", contract_decrement},
     //add new contract here
     {NULL, NULL}
 };
