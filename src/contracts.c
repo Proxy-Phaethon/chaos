@@ -42,6 +42,13 @@ static void contract_decrement(const char *input)
     printf("%d\n", value - 1);
 }
 
+static void contract_reset(const char *input)
+{
+    (void)input;
+
+    printf("0\n");
+}
+
 //add new contract here
 
 Contract contracts[] =
@@ -52,6 +59,7 @@ Contract contracts[] =
     {"clear", contract_clear},
     {"increment", contract_increment},
     {"decrement", contract_decrement},
+    {"reset", contract_reset},
     //add new contract here
     {NULL, NULL}
 };
