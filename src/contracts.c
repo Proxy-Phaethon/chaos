@@ -70,6 +70,13 @@ static void contract_halve(const char *input)
     printf("%d\n", value / 2);
 }
 
+static void contract_negate(const char *input)
+{
+    int value = atoi(input);
+
+    printf("%d\n", -value);
+}
+
 //add new contract here
 
 Contract contracts[] =
@@ -84,6 +91,7 @@ Contract contracts[] =
     {"triple", contract_triple},
     {"square", contract_square},
     {"halve", contract_halve},
+    {"negate", contract_negate},
     //add new contract here
     {NULL, NULL}
 };
