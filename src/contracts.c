@@ -56,6 +56,13 @@ static void contract_triple(const char *input)
     printf("%d\n", value * 3);
 }
 
+static void contract_square(const char *input)
+{
+    int value = atoi(input);
+
+    printf("%d\n", value * value);
+}
+
 //add new contract here
 
 Contract contracts[] =
@@ -68,6 +75,7 @@ Contract contracts[] =
     {"decrement", contract_decrement},
     {"reset", contract_reset},
     {"triple", contract_triple},
+    {"square", contract_square},
     //add new contract here
     {NULL, NULL}
 };
