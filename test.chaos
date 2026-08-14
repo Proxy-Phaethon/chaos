@@ -1,8 +1,0 @@
-logic0 ('What is your name?')
-call metastable, sanitizer
-if word
-    action ('print')
-else if number
-    action ('double')
-else
-    terminate
