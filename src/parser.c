@@ -74,6 +74,15 @@ static ASTNode *parse_condition(Parser *parser)
         );
     }
 
+    if (check(parser, TOKEN_STRING)) {
+        Token *token = advance_parser(parser);
+
+        return ast_create(
+            AST_EXPRESSION,
+            token->value
+        );
+    }
+
     if (check(parser, TOKEN_IDENTIFIER)) {
         Token *token = advance_parser(parser);
 
@@ -532,45 +541,37 @@ static ASTNode *parse_logic(Parser *parser)
         ASTNode *statement = NULL;
 
         if (check(parser, TOKEN_IF)) {
-            statement = parse_if(parser);
+    statement = parse_if(parser);
 
-            while (statement != NULL &&
-                   check(parser, TOKEN_ELSE)) {
+    if (statement != NULL) {
+        ast_add_child(logic, statement);
+        statement = NULL;
+    }
 
-                /*
-                 * Look ahead to distinguish:
-                 *
-                 * else if ...
-                 *
-                 * from:
-                 *
-                 * else ...
-                 */
-                if (parser->current + 1 <
-                    parser->tokens->count &&
-                    parser->tokens->items[
-                        parser->current + 1
-                    ].type == TOKEN_IF) {
+    while (check(parser, TOKEN_ELSE)) {
 
-                    ASTNode *else_if =
-                        parse_else_if(parser);
+        if (parser->current + 1 < parser->tokens->count &&
+            parser->tokens->items[
+                parser->current + 1
+            ].type == TOKEN_IF) {
 
-                    if (else_if != NULL) {
-                        ast_add_child(logic, else_if);
-                    }
-                }
-                else {
-                    ASTNode *else_node =
-                        parse_else(parser);
+            ASTNode *else_if = parse_else_if(parser);
 
-                    if (else_node != NULL) {
-                        ast_add_child(logic, else_node);
-                    }
-
-                    break;
-                }
+            if (else_if != NULL) {
+                ast_add_child(logic, else_if);
             }
         }
+        else {
+            ASTNode *else_node = parse_else(parser);
+
+            if (else_node != NULL) {
+                ast_add_child(logic, else_node);
+            }
+
+            break;
+        }
+    }
+}
         else if (check(parser, TOKEN_STATE)) {
             statement = parse_state(parser);
         }
