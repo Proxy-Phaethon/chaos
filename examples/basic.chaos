@@ -1,0 +1,14 @@
+logic {x > 0};
+    if true,
+        ('print' result)
+    else if false,
+        ('square' result)
+    else terminate;
+
+    state: x,
+    transition ('none');
+
+    context {x + 1 = 2},
+    rule ('x not equal 0');
+
+execute
