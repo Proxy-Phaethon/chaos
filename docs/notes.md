@@ -41,3 +41,8 @@ in that i have gone full circle and landed back on making chaos a universal tran
 it will remain a programming language in structure, but get an additional layer through its dedicated CLI - a system that translates the pure chaos code into whatever target language is required by your hiring company. 
 
 the world of capitalism may fall soon, but we still need to survive to see that, and a common person needs money, a job. including me.
+
+## Sunday, 16th August
+okay, alright, i seriously need to collect my thoughts.
+
+first bit of chaos will be the parser. like genuinely, i hate building things step by step. i already know all the words i need, might as well build the parser in one go.
