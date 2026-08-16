@@ -15,7 +15,6 @@
 
 ![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
 ![C](https://img.shields.io/badge/C-000000?style=for-the-badge&logo=c&logoColor=white)
-![Assembly](https://img.shields.io/badge/Assembly-000000?style=for-the-badge&logo=assembly&logoColor=white)
 
 </div>
 
@@ -29,99 +28,105 @@ It began from a simple frustration: having to memorize different syntax and prog
 
 The goal is not to make programming "easier" by hiding computation. It is to make the structure of computation easier to express.
 
+Chaos is currently in active development and is being implemented in C as a way to explore the foundations of programming languages, parsers, runtimes, state, and computation.
+
 ## Version 1
 
-Chaos v1 is a functional programming language. Its core model is built around calculators, registers, states, blocks, actions, logic, transitions, memory, and reusable contracts.
+Chaos v1 is a functional programming language built around a small set of computational primitives.
 
-A Chaos project contains:
+The central idea is that computation in Chaos should be expressed through processes, states, rules, reusable operations, and transformations rather than through a large collection of specialized syntax.
 
-* one **brain**, the project's central computational component
-* one **memory**, the project's central data storage
-* multiple **calculators**, which are individual Chaos files
-* registers containing the active states of each calculator
-* blocks containing the operations that make up a program
+The core primitives are:
 
-The core logic primitives are:
+* `logic` — defines a process or unit of active computation
+* `execute` — runs an executable operation from within `logic`
+* `contract` — defines a reusable operation with a known purpose and rules
+* `register` — holds the currently active computational states available to `logic`
+* `state` — represents information or a condition that can be stored, loaded, changed, and reused
+* `load` — retrieves a state from the register or context into the current logic
+* `transition` — changes one state into another according to defined rules
+* `constant` — stores a local value that remains available to a piece of `logic`
+* `context` — defines the environment in which a piece of logic operates
+* `rule` / `rules` — defines constraints or conditions governing what may happen within a context
 
-* `logic0` — primitive conditional logic
-* `logic1` — repetition and loops
-* `logic2` — temporary retention and cache
-* `mux` — contextual state switching
-* `context` — contextual information used by `mux`
+Chaos also provides general-purpose data structures:
 
-Blocks are built primarily from:
+* `list` — ordered collection of data
+* `queue` — first-in, first-out collection
+* `stack` — last-in, first-out collection
+* `branch` — hierarchical tree-like data structure
 
-* `action` — operations composed from contracts and built-ins
-* `contract` — predefined reusable functions or instructions
-* `built-in` — larger language-provided operations
-* `transition` — rules governing state changes
-* `constant` — block-specific fixed data
-* `state load` — retrieval of project data from memory
-* `execute` — execution of a block
-* `clock` — execution following the normal flow
-* `anticlock` — execution independently of the normal flow
+These structures can be manipulated through operations such as:
 
-Calculators can be connected into engines using `c.pipeline`, while engines connect to the project's central brain through `e.pipeline`.
+* `push` — adds data to a storage structure
+* `pop` — retrieves and removes data from a storage structure
 
-The language also provides common data structures such as lists, linked lists, stacks, queues, trees, and branches.
+Research and information-oriented operations are also part of the language model:
 
-The core syntax is intentionally small. Much of Chaos's practical functionality comes from its libraries of contracts, transitions, contexts, and built-ins rather than from an ever-growing collection of primitive language instructions.
+* `write` — creates a textual research record, note, document, or other material
+* `edit` — modifies existing textual material
+* `change` — modifies structured research data at its source and may trigger dependent recalculation
+* `lookup` — retrieves existing information from the Chaos project
+* `search` — searches external sources for research material
+* `encode` — converts Chaos data into an external representation such as a chart, table, diagram, Markdown, Mermaid, or eventually a paper/PDF
+* `decode` — extracts structured information from an encoded representation or converts one representation into another useful form
+
+The core syntax is intentionally small. Much of Chaos's practical functionality is intended to come from libraries of contracts and reusable computational structures rather than from continually adding new language primitives.
 
 ## Architecture
 
+The conceptual structure of Chaos is currently centered around `logic`, state, contracts, and execution.
+
 ```mermaid
 flowchart TD
-    P[PROJECT]
+    L[LOGIC]
 
-    P --> B[BRAIN]
-    P --> M[MEMORY]
+    L --> C[CONTEXT]
+    L --> R[REGISTER]
 
-    B --> EP[e.pipeline]
-    EP --> E[ENGINE]
+    C --> RU[RULES]
+    C --> S[STATE]
 
-    E --> CP[c.pipeline]
-    CP --> C[CALCULATOR / FILE]
+    R --> S
 
-    C --> R[REGISTER]
-    R --> S[STATES]
+    L --> LD[LOAD]
+    LD --> S
 
-    C --> BL[BLOCK]
+    L --> EX[EXECUTE]
+    EX --> CO[CONTRACT]
 
-    BL --> A[ACTION]
-    A --> CO[CONTRACTS]
-    A --> BI[BUILT-INS]
+    L --> TR[TRANSITION]
+    TR --> S
 
-    BL --> L0[logic0]
-    BL --> L1[logic1]
-    BL --> L2[logic2]
+    L --> K[CONSTANT]
 
-    BL --> MX[mux]
-    MX --> CT[context]
+    CO --> DS[DATA STRUCTURES]
+    DS --> LI[LIST]
+    DS --> QU[QUEUE]
+    DS --> ST[STACK]
+    DS --> BR[BRANCH]
 
-    BL --> T[transition]
-    BL --> K[constant]
-    BL --> SL[state load]
-    BL --> EX[execute]
-
-    EX --> CL[clock]
-    EX --> AC[anticlock]
-
-    SL --> M
+    L --> IO[RESEARCH / DATA]
+    IO --> WR[WRITE]
+    IO --> ED[EDIT]
+    IO --> CH[CHANGE]
+    IO --> LU[LOOKUP]
+    IO --> SE[SEARCH]
+    IO --> EN[ENCODE]
+    IO --> DE[DECODE]
 ```
+
+The implementation is deliberately being developed from the bottom up. The current goal is not to implement the entire conceptual architecture at once, but to establish a working parser and runtime and then build the language around them.
 
 ## Beyond Version 1
 
-Chaos is intended to grow as a computational environment rather than remain only a programming language.
+Chaos is intended to grow beyond a programming language into a broader computational environment.
 
 Version 2 will introduce the Chaos CLI.
 
-Later versions will introduce separate computational domains rather than forcing every capability into the core language.
+Later versions may introduce separate computational domains rather than forcing every capability into the core language.
 
-The first major expansion is mathematics.
-
-The mathematical layer will introduce named mathematical functions through `encode` and `decode`, while `sequence` will provide a place for mathematical processes that do not naturally belong within those functions.
-
-Future domains may include:
+Potential domains include:
 
 * mathematics
 * physics
@@ -131,7 +136,7 @@ Future domains may include:
 * hardware-oriented programming
 * scientific visualization
 
-The intention is for these domains to build upon Chaos Core while remaining conceptually separate from it. A developer writing an ordinary application should not need to carry an entire mathematical or physics language around with them.
+These domains are intended to build upon Chaos Core while remaining conceptually separate from it. A developer writing an ordinary application should not need to carry an entire mathematical or physics system into the core language.
 
 The long-term ambition is considerably larger:
 
@@ -149,7 +154,9 @@ Chaos ecosystem
 Chaos-centric operating environment
 ```
 
-That is a long way off. For now, the objective is considerably less glamorous:
+That is a long way off.
+
+For now, the objective is considerably less glamorous:
 
 **Make Chaos v1 work.**
 
@@ -168,18 +175,6 @@ It is an experiment in whether programming can be expressed through computationa
 I am also making this while learning how languages, compilers, runtimes, and computer systems actually work, so some of the architecture will undoubtedly evolve as the implementation catches up with the ideas.
 
 That is part of the project.
-
-## Current Implementation
-
-Chaos itself is being implemented in **C**.
-
-The CLI is planned to be implemented separately in **Rust** for Version 2.
-
-The current priority is the Chaos language itself. The first milestone is a working implementation capable of parsing and executing real Chaos programs.
-
-The larger ambitions can wait.
-
-One programming language at a time.
 
 ---
 
