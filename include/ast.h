@@ -1,5 +1,5 @@
-#ifndef AST_H
-#define AST_H
+#ifndef CHAOS_AST_H
+#define CHAOS_AST_H
 
 #include <stddef.h>
 
@@ -7,18 +7,19 @@ typedef enum {
     AST_PROGRAM,
 
     AST_LOGIC,
+    AST_EXECUTE,
+
     AST_IF,
     AST_ELSE_IF,
     AST_ELSE,
+
+    AST_CONTRACT_CALL,
 
     AST_STATE,
     AST_TRANSITION,
 
     AST_CONTEXT,
     AST_RULE,
-
-    AST_EXECUTE,
-    AST_CONTRACT_CALL,
 
     AST_RESULT,
     AST_TERMINATE,
@@ -33,11 +34,15 @@ typedef struct ASTNode {
 
     struct ASTNode **children;
     size_t child_count;
+    size_t child_capacity;
 } ASTNode;
 
 ASTNode *ast_create(ASTType type, const char *value);
 void ast_add_child(ASTNode *parent, ASTNode *child);
+
 void ast_print(const ASTNode *node, int depth);
 void ast_free(ASTNode *node);
+
+const char *ast_type_name(ASTType type);
 
 #endif
