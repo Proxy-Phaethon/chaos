@@ -306,14 +306,6 @@ TokenList *lexer_tokenize(const char *source)
                 &column
             );
 
-            add_token(
-                list,
-                TOKEN_RBRACE,
-                NULL,
-                line,
-                column
-            );
-
             continue;
         }
 
