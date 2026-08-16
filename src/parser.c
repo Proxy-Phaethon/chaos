@@ -28,16 +28,6 @@ static Token *advance_parser(Parser *parser)
     return previous(parser);
 }
 
-static int match(Parser *parser, TokenType type)
-{
-    if (!check(parser, type)) {
-        return 0;
-    }
-
-    advance_parser(parser);
-    return 1;
-}
-
 static void parser_error(Parser *parser, const char *message)
 {
     Token *token = current(parser);
