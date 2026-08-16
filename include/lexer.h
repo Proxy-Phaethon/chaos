@@ -1,5 +1,5 @@
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef CHAOS_LEXER_H
+#define CHAOS_LEXER_H
 
 #include <stddef.h>
 
@@ -8,6 +8,7 @@ typedef enum {
 
     TOKEN_IDENTIFIER,
     TOKEN_EXPRESSION,
+    TOKEN_STRING,
 
     TOKEN_LOGIC,
     TOKEN_IF,
@@ -33,15 +34,19 @@ typedef enum {
 typedef struct {
     TokenType type;
     char *value;
+    size_t line;
+    size_t column;
 } Token;
 
 typedef struct {
-    Token *tokens;
+    Token *items;
     size_t count;
     size_t capacity;
 } TokenList;
 
 TokenList *lexer_tokenize(const char *source);
 void lexer_free(TokenList *tokens);
+
+const char *token_type_name(TokenType type);
 
 #endif
