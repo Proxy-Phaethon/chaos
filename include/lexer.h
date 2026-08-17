@@ -7,8 +7,9 @@ typedef enum {
     TOKEN_EOF,
 
     TOKEN_IDENTIFIER,
-    TOKEN_EXPRESSION,
+    TOKEN_NUMBER,
     TOKEN_STRING,
+    TOKEN_EXPRESSION,
 
     TOKEN_LOGIC,
     TOKEN_IF,
@@ -20,26 +21,30 @@ typedef enum {
     TOKEN_EXECUTE,
     TOKEN_RESULT,
     TOKEN_TERMINATE,
+    TOKEN_REGISTER,
+    TOKEN_CONSTANT,
+    TOKEN_PUSH,
+    TOKEN_POP,
 
-    TOKEN_LBRACE,
-    TOKEN_RBRACE,
     TOKEN_LPAREN,
     TOKEN_RPAREN,
-
     TOKEN_COLON,
     TOKEN_COMMA,
-    TOKEN_SEMICOLON
+    TOKEN_SEMICOLON,
+    TOKEN_EQUALS
 } TokenType;
 
 typedef struct {
     TokenType type;
     char *value;
+
     size_t line;
     size_t column;
 } Token;
 
 typedef struct {
     Token *items;
+
     size_t count;
     size_t capacity;
 } TokenList;
