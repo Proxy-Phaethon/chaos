@@ -521,6 +521,7 @@ const char *token_type_name(TokenType type)
     switch (type) {
         case TOKEN_EOF:         return "EOF";
         case TOKEN_IDENTIFIER:  return "IDENTIFIER";
+        case TOKEN_SYMBOL:      return "SYMBOL";
         case TOKEN_NUMBER:      return "NUMBER";
         case TOKEN_STRING:      return "STRING";
         case TOKEN_EXPRESSION:  return "EXPRESSION";
