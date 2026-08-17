@@ -20,7 +20,11 @@ static const Keyword keywords[] = {
     {"rule",       TOKEN_RULE},
     {"execute",    TOKEN_EXECUTE},
     {"result",     TOKEN_RESULT},
-    {"terminate",  TOKEN_TERMINATE}
+    {"terminate",  TOKEN_TERMINATE},
+    {"register",   TOKEN_REGISTER},
+    {"constant",   TOKEN_CONSTANT},
+    {"push",       TOKEN_PUSH},
+    {"pop",        TOKEN_POP}
 };
 
 static const size_t keyword_count =
@@ -65,8 +69,10 @@ static void add_token(
             : list->capacity * 2;
 
         Token *new_items =
-            realloc(list->items,
-                    new_capacity * sizeof(Token));
+            realloc(
+                list->items,
+                new_capacity * sizeof(Token)
+            );
 
         if (new_items == NULL) {
             free(value);
@@ -127,6 +133,7 @@ static void lex_identifier(
     }
 
     size_t length = (size_t)(*cursor - start);
+
     char *value = copy_range(start, length);
 
     if (value == NULL) {
@@ -135,7 +142,46 @@ static void lex_identifier(
 
     TokenType type = keyword_type(value);
 
-    add_token(list, type, value, *line, start_column);
+    add_token(
+        list,
+        type,
+        value,
+        *line,
+        start_column
+    );
+}
+
+static void lex_number(
+    const char **cursor,
+    TokenList *list,
+    size_t *line,
+    size_t *column)
+{
+    const char *start = *cursor;
+    size_t start_column = *column;
+
+    while (isdigit((unsigned char)**cursor) ||
+           **cursor == '.') {
+
+        (*cursor)++;
+        (*column)++;
+    }
+
+    size_t length = (size_t)(*cursor - start);
+
+    char *value = copy_range(start, length);
+
+    if (value == NULL) {
+        return;
+    }
+
+    add_token(
+        list,
+        TOKEN_NUMBER,
+        value,
+        *line,
+        start_column
+    );
 }
 
 static void lex_string(
@@ -151,11 +197,14 @@ static void lex_string(
 
     const char *start = *cursor;
 
-    while (**cursor != '\0' && **cursor != '\'') {
+    while (**cursor != '\0' &&
+           **cursor != '\'') {
+
         if (**cursor == '\n') {
             (*line)++;
             *column = 1;
-        } else {
+        }
+        else {
             (*column)++;
         }
 
@@ -205,6 +254,7 @@ static void lex_expression(
         }
         else if (**cursor == '}') {
             depth--;
+
             if (depth == 0) {
                 break;
             }
@@ -266,7 +316,11 @@ TokenList *lexer_tokenize(const char *source)
     size_t column = 1;
 
     while (*cursor != '\0') {
-        skip_whitespace(&cursor, &line, &column);
+        skip_whitespace(
+            &cursor,
+            &line,
+            &column
+        );
 
         if (*cursor == '\0') {
             break;
@@ -278,6 +332,17 @@ TokenList *lexer_tokenize(const char *source)
             *cursor == '_') {
 
             lex_identifier(
+                &cursor,
+                list,
+                &line,
+                &column
+            );
+
+            continue;
+        }
+
+        if (isdigit((unsigned char)*cursor)) {
+            lex_number(
                 &cursor,
                 list,
                 &line,
@@ -309,7 +374,7 @@ TokenList *lexer_tokenize(const char *source)
             continue;
         }
 
-        TokenType type = TOKEN_EOF;
+        TokenType type;
 
         switch (*cursor) {
             case '(':
@@ -332,14 +397,15 @@ TokenList *lexer_tokenize(const char *source)
                 type = TOKEN_SEMICOLON;
                 break;
 
-            case '}':
-                type = TOKEN_RBRACE;
+            case '=':
+                type = TOKEN_EQUALS;
                 break;
 
             default:
                 fprintf(
                     stderr,
-                    "Lexer error at %zu:%zu: unexpected character '%c'\n",
+                    "Lexer error at %zu:%zu: "
+                    "unexpected character '%c'\n",
                     line,
                     column,
                     *cursor
@@ -350,7 +416,13 @@ TokenList *lexer_tokenize(const char *source)
                 continue;
         }
 
-        add_token(list, type, NULL, line, token_column);
+        add_token(
+            list,
+            type,
+            NULL,
+            line,
+            token_column
+        );
 
         cursor++;
         column++;
@@ -386,8 +458,9 @@ const char *token_type_name(TokenType type)
     switch (type) {
         case TOKEN_EOF:         return "EOF";
         case TOKEN_IDENTIFIER:  return "IDENTIFIER";
-        case TOKEN_EXPRESSION:  return "EXPRESSION";
+        case TOKEN_NUMBER:      return "NUMBER";
         case TOKEN_STRING:      return "STRING";
+        case TOKEN_EXPRESSION:  return "EXPRESSION";
 
         case TOKEN_LOGIC:       return "LOGIC";
         case TOKEN_IF:          return "IF";
@@ -399,15 +472,17 @@ const char *token_type_name(TokenType type)
         case TOKEN_EXECUTE:     return "EXECUTE";
         case TOKEN_RESULT:      return "RESULT";
         case TOKEN_TERMINATE:   return "TERMINATE";
+        case TOKEN_REGISTER:    return "REGISTER";
+        case TOKEN_CONSTANT:    return "CONSTANT";
+        case TOKEN_PUSH:        return "PUSH";
+        case TOKEN_POP:         return "POP";
 
-        case TOKEN_LBRACE:      return "LBRACE";
-        case TOKEN_RBRACE:      return "RBRACE";
         case TOKEN_LPAREN:      return "LPAREN";
         case TOKEN_RPAREN:      return "RPAREN";
-
         case TOKEN_COLON:       return "COLON";
         case TOKEN_COMMA:       return "COMMA";
         case TOKEN_SEMICOLON:   return "SEMICOLON";
+        case TOKEN_EQUALS:      return "EQUALS";
 
         default:                return "UNKNOWN";
     }
