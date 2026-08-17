@@ -453,6 +453,43 @@ void lexer_free(TokenList *tokens)
     free(tokens);
 }
 
+static void lex_symbol(
+    const char **cursor,
+    TokenList *list,
+    size_t *line,
+    size_t *column)
+{
+    size_t start_column = *column;
+    const char *start = *cursor;
+
+    while (**cursor != '\0' &&
+           !isspace((unsigned char)**cursor) &&
+           **cursor != ';' &&
+           **cursor != ',' &&
+           **cursor != '(' &&
+           **cursor != ')') {
+
+        (*cursor)++;
+        (*column)++;
+    }
+
+    size_t length = (size_t)(*cursor - start);
+
+    char *value = copy_range(start, length);
+
+    if (value == NULL) {
+        return;
+    }
+
+    add_token(
+        list,
+        TOKEN_SYMBOL,
+        value,
+        *line,
+        start_column
+    );
+}
+
 const char *token_type_name(TokenType type)
 {
     switch (type) {
