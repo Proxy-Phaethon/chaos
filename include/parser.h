@@ -7,7 +7,6 @@
 typedef struct {
     TokenList *tokens;
     size_t current;
-
     int had_error;
 } Parser;
 
