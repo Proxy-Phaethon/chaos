@@ -46,3 +46,8 @@ the world of capitalism may fall soon, but we still need to survive to see that,
 okay, alright, i seriously need to collect my thoughts.
 
 first bit of chaos will be the parser. like genuinely, i hate building things step by step. i already know all the words i need, might as well build the parser in one go.
+
+## Monday, 17th August
+my face itches, i wonder if i am allergic to niacinamide. i sure hope not, or my dreams of becoming a model are over. i so crave the feeling of dressing up prettily and posing for photoshoots. it just seems incredibly satisfying, you know. catering to my own ego, so i can finally stop looking in a mirror and screaming but instead go 'fwaaaaaaa'.
+
+i'm going off-track, ahem. today i'll attempt to add the register, state declarations, data structure types, constants, and push/pop commands to the lexer and parser.
