@@ -374,6 +374,32 @@ TokenList *lexer_tokenize(const char *source)
             continue;
         }
 
+        if (*cursor == '{') {
+    lex_expression(
+        &cursor,
+        list,
+        &line,
+        &column
+    );
+
+    continue;
+}
+
+if (strchr("<>!+-*/%&|", *cursor) != NULL) {
+    lex_symbol(
+        &cursor,
+        list,
+        &line,
+        &column
+    );
+
+    continue;
+}
+
+TokenType type;
+
+switch (*cursor) {
+
         TokenType type;
 
         switch (*cursor) {
