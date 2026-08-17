@@ -7,6 +7,7 @@ typedef enum {
     TOKEN_EOF,
 
     TOKEN_IDENTIFIER,
+    TOKEN_SYMBOL,
     TOKEN_NUMBER,
     TOKEN_STRING,
     TOKEN_EXPRESSION,
