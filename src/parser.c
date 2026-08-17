@@ -345,14 +345,42 @@ static ASTNode *parse_constant(Parser *parser)
         return NULL;
     }
 
-    ASTNode *value = parse_value(parser);
+    /*
+     * A constant contains an arbitrary Chaos expression.
+     * For now, collect everything until ';'.
+     */
+    char buffer[4096];
+    buffer[0] = '\0';
 
-    if (value == NULL) {
+    while (!check(parser, TOKEN_SEMICOLON) &&
+           !check(parser, TOKEN_EOF)) {
+
+        Token *token = advance_parser(parser);
+
+        if (token->value != NULL) {
+            if (buffer[0] != '\0') {
+                strcat(buffer, " ");
+            }
+
+            strcat(buffer, token->value);
+        }
+    }
+
+    ASTNode *value = ast_create(
+        AST_STATE_VALUE,
+        buffer
+    );
+
+    ast_add_child(constant, value);
+
+    if (!expect(
+            parser,
+            TOKEN_SEMICOLON,
+            "expected ';' after constant")) {
+
         ast_free(constant);
         return NULL;
     }
-
-    ast_add_child(constant, value);
 
     return constant;
 }
