@@ -1,14 +1,15 @@
+register ('experiment'):
+
+    state: x = 3,
+    state: name = 'Zia',
+    state: list_one, queue = {'item 1', 'item 2'},
+    state: numbers, list = {'1', '2', '3'};
+
 logic {x > 0};
-    if true,
-        ('print' result)
-    else if false,
-        ('square' result)
-    else terminate;
 
-    state: x,
+    constant: x < y;
+
+    state: list_one (push 'item 3'),
     transition ('none');
-
-    context {x + 1 = 2},
-    rule ('x not equal 0');
 
 execute
