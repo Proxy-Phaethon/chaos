@@ -16,4 +16,4 @@ clean:
 	rm -f $(TARGET)
 
 run:
-	./$(TARGET) examples/basic.chaos
+	./$(TARGET) examples/register.chaos
