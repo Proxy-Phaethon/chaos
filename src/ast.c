@@ -51,8 +51,10 @@ void ast_add_child(ASTNode *parent, ASTNode *child)
             : parent->child_capacity * 2;
 
         ASTNode **new_children =
-            realloc(parent->children,
-                    new_capacity * sizeof(ASTNode *));
+            realloc(
+                parent->children,
+                new_capacity * sizeof(ASTNode *)
+            );
 
         if (new_children == NULL) {
             return;
@@ -68,21 +70,38 @@ void ast_add_child(ASTNode *parent, ASTNode *child)
 const char *ast_type_name(ASTType type)
 {
     switch (type) {
-        case AST_PROGRAM:         return "PROGRAM";
-        case AST_LOGIC:           return "LOGIC";
-        case AST_EXECUTE:         return "EXECUTE";
-        case AST_IF:              return "IF";
-        case AST_ELSE_IF:         return "ELSE IF";
-        case AST_ELSE:            return "ELSE";
-        case AST_CONTRACT_CALL:   return "CONTRACT";
-        case AST_STATE:           return "STATE";
-        case AST_TRANSITION:      return "TRANSITION";
-        case AST_CONTEXT:         return "CONTEXT";
-        case AST_RULE:            return "RULE";
-        case AST_RESULT:          return "RESULT";
-        case AST_TERMINATE:       return "TERMINATE";
-        case AST_EXPRESSION:      return "EXPRESSION";
-        default:                  return "UNKNOWN";
+        case AST_PROGRAM:            return "PROGRAM";
+
+        case AST_REGISTER:           return "REGISTER";
+        case AST_STATE_DECLARATION:  return "STATE";
+        case AST_STATE_NAME:         return "NAME";
+        case AST_STATE_VALUE:        return "VALUE";
+        case AST_DATA_TYPE:          return "TYPE";
+        case AST_DATA_ITEMS:         return "ITEMS";
+
+        case AST_LOGIC:              return "LOGIC";
+        case AST_EXPRESSION:         return "EXPRESSION";
+        case AST_CONSTANT:           return "CONSTANT";
+
+        case AST_IF:                 return "IF";
+        case AST_ELSE_IF:            return "ELSE IF";
+        case AST_ELSE:               return "ELSE";
+
+        case AST_CONTRACT_CALL:      return "CONTRACT";
+        case AST_RESULT:             return "RESULT";
+        case AST_TERMINATE:          return "TERMINATE";
+
+        case AST_STATE_OPERATION:    return "STATE OPERATION";
+        case AST_PUSH:               return "PUSH";
+        case AST_POP:                return "POP";
+
+        case AST_TRANSITION:         return "TRANSITION";
+        case AST_CONTEXT:            return "CONTEXT";
+        case AST_RULE:               return "RULE";
+
+        case AST_EXECUTE:            return "EXECUTE";
+
+        default:                     return "UNKNOWN";
     }
 }
 
