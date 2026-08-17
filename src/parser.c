@@ -975,21 +975,15 @@ static ASTNode *parse_logic(Parser *parser)
         }
 
         if (check(parser, TOKEN_CONSTANT)) {
-            ASTNode *constant =
-                parse_constant(parser);
+    ASTNode *constant =
+        parse_constant(parser);
 
-            if (constant != NULL) {
-                ast_add_child(logic, constant);
-            }
+    if (constant != NULL) {
+        ast_add_child(logic, constant);
+    }
 
-            expect(
-                parser,
-                TOKEN_SEMICOLON,
-                "expected ';' after constant"
-            );
-
-            continue;
-        }
+    continue;
+}
 
         if (check(parser, TOKEN_STATE)) {
             ASTNode *state =
