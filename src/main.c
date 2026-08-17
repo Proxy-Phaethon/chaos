@@ -60,14 +60,16 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    TokenList *tokens = lexer_tokenize(source);
+    TokenList *tokens =
+        lexer_tokenize(source);
 
     if (tokens == NULL) {
         free(source);
         return 1;
     }
 
-    ASTNode *program = parser_parse(tokens);
+    ASTNode *program =
+        parser_parse(tokens);
 
     if (program == NULL) {
         lexer_free(tokens);
@@ -76,6 +78,7 @@ int main(int argc, char **argv)
     }
 
     printf("Parsed successfully.\n\n");
+
     ast_print(program, 0);
 
     ast_free(program);
