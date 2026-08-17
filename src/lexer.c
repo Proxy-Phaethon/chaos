@@ -298,6 +298,53 @@ static void lex_expression(
     }
 }
 
+static void lex_symbol(
+    const char **cursor,
+    TokenList *list,
+    size_t *line,
+    size_t *column)
+{
+    const char *start = *cursor;
+    size_t start_column = *column;
+
+    /*
+     * Keep consuming operator characters as one token.
+     *
+     * Examples:
+     * <
+     * >
+     * <=
+     * >=
+     * !=
+     * +
+     * -
+     * *
+     * /
+     */
+    while (**cursor != '\0' &&
+           strchr("<>!+-*/%&|", **cursor) != NULL) {
+
+        (*cursor)++;
+        (*column)++;
+    }
+
+    size_t length = (size_t)(*cursor - start);
+
+    char *value = copy_range(start, length);
+
+    if (value == NULL) {
+        return;
+    }
+
+    add_token(
+        list,
+        TOKEN_SYMBOL,
+        value,
+        *line,
+        start_column
+    );
+}
+
 TokenList *lexer_tokenize(const char *source)
 {
     if (source == NULL) {
@@ -374,31 +421,16 @@ TokenList *lexer_tokenize(const char *source)
             continue;
         }
 
-        if (*cursor == '{') {
-    lex_expression(
-        &cursor,
-        list,
-        &line,
-        &column
-    );
+        if (strchr("<>!+-*/%&|", *cursor) != NULL) {
+            lex_symbol(
+                &cursor,
+                list,
+                &line,
+                &column
+            );
 
-    continue;
-}
-
-if (strchr("<>!+-*/%&|", *cursor) != NULL) {
-    lex_symbol(
-        &cursor,
-        list,
-        &line,
-        &column
-    );
-
-    continue;
-}
-
-TokenType type;
-
-switch (*cursor) {
+            continue;
+        }
 
         TokenType type;
 
@@ -477,43 +509,6 @@ void lexer_free(TokenList *tokens)
 
     free(tokens->items);
     free(tokens);
-}
-
-static void lex_symbol(
-    const char **cursor,
-    TokenList *list,
-    size_t *line,
-    size_t *column)
-{
-    size_t start_column = *column;
-    const char *start = *cursor;
-
-    while (**cursor != '\0' &&
-           !isspace((unsigned char)**cursor) &&
-           **cursor != ';' &&
-           **cursor != ',' &&
-           **cursor != '(' &&
-           **cursor != ')') {
-
-        (*cursor)++;
-        (*column)++;
-    }
-
-    size_t length = (size_t)(*cursor - start);
-
-    char *value = copy_range(start, length);
-
-    if (value == NULL) {
-        return;
-    }
-
-    add_token(
-        list,
-        TOKEN_SYMBOL,
-        value,
-        *line,
-        start_column
-    );
 }
 
 const char *token_type_name(TokenType type)
