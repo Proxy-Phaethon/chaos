@@ -2,30 +2,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 static Token *current(Parser *parser)
 {
     return &parser->tokens->items[parser->current];
 }
 
-static Token *previous(Parser *parser)
+static Token *advance_parser(Parser *parser)
 {
+    if (current(parser)->type != TOKEN_EOF) {
+        parser->current++;
+    }
+
     return &parser->tokens->items[parser->current - 1];
 }
 
 static int check(Parser *parser, TokenType type)
 {
     return current(parser)->type == type;
-}
-
-static Token *advance_parser(Parser *parser)
-{
-    if (!check(parser, TOKEN_EOF)) {
-        parser->current++;
-    }
-
-    return previous(parser);
 }
 
 static void parser_error(Parser *parser, const char *message)
@@ -63,13 +57,13 @@ static int expect(
     return 0;
 }
 
-static ASTNode *parse_condition(Parser *parser)
+static ASTNode *parse_value(Parser *parser)
 {
     if (check(parser, TOKEN_EXPRESSION)) {
         Token *token = advance_parser(parser);
 
         return ast_create(
-            AST_EXPRESSION,
+            AST_STATE_VALUE,
             token->value
         );
     }
@@ -78,7 +72,16 @@ static ASTNode *parse_condition(Parser *parser)
         Token *token = advance_parser(parser);
 
         return ast_create(
-            AST_EXPRESSION,
+            AST_STATE_VALUE,
+            token->value
+        );
+    }
+
+    if (check(parser, TOKEN_NUMBER)) {
+        Token *token = advance_parser(parser);
+
+        return ast_create(
+            AST_STATE_VALUE,
             token->value
         );
     }
@@ -87,23 +90,407 @@ static ASTNode *parse_condition(Parser *parser)
         Token *token = advance_parser(parser);
 
         return ast_create(
-            AST_EXPRESSION,
+            AST_STATE_VALUE,
             token->value
         );
     }
 
-    if (check(parser, TOKEN_RESULT)) {
-        Token *token = advance_parser(parser);
-
-        return ast_create(
-            AST_RESULT,
-            token->value
-        );
-    }
-
-    parser_error(parser, "expected condition");
+    parser_error(parser, "expected value");
 
     return NULL;
+}
+
+static ASTNode *parse_register_state(Parser *parser)
+{
+    if (!expect(
+            parser,
+            TOKEN_STATE,
+            "expected 'state'")) {
+
+        return NULL;
+    }
+
+    if (!expect(
+            parser,
+            TOKEN_COLON,
+            "expected ':' after 'state'")) {
+
+        return NULL;
+    }
+
+    if (!check(parser, TOKEN_IDENTIFIER)) {
+        parser_error(
+            parser,
+            "expected state name"
+        );
+
+        return NULL;
+    }
+
+    Token *name = advance_parser(parser);
+
+    ASTNode *state = ast_create(
+        AST_STATE_DECLARATION,
+        NULL
+    );
+
+    if (state == NULL) {
+        return NULL;
+    }
+
+    ASTNode *name_node = ast_create(
+        AST_STATE_NAME,
+        name->value
+    );
+
+    ast_add_child(state, name_node);
+
+    /*
+     * state: x = 3
+     */
+    if (check(parser, TOKEN_EQUALS)) {
+        advance_parser(parser);
+
+        ASTNode *value = parse_value(parser);
+
+        if (value == NULL) {
+            ast_free(state);
+            return NULL;
+        }
+
+        ast_add_child(state, value);
+
+        return state;
+    }
+
+    /*
+     * state: list_one, queue = {...}
+     *
+     * The identifier immediately after the comma
+     * is interpreted as the data-structure type.
+     */
+    if (check(parser, TOKEN_COMMA)) {
+        advance_parser(parser);
+
+        if (!check(parser, TOKEN_IDENTIFIER)) {
+            parser_error(
+                parser,
+                "expected data structure type"
+            );
+
+            ast_free(state);
+            return NULL;
+        }
+
+        Token *type = advance_parser(parser);
+
+        ASTNode *type_node = ast_create(
+            AST_DATA_TYPE,
+            type->value
+        );
+
+        ast_add_child(state, type_node);
+
+        if (!expect(
+                parser,
+                TOKEN_EQUALS,
+                "expected '=' after data structure type")) {
+
+            ast_free(state);
+            return NULL;
+        }
+
+        ASTNode *value = parse_value(parser);
+
+        if (value == NULL) {
+            ast_free(state);
+            return NULL;
+        }
+
+        ast_add_child(state, value);
+
+        return state;
+    }
+
+    /*
+     * A state with only a name is also valid.
+     */
+    return state;
+}
+
+static ASTNode *parse_register(Parser *parser)
+{
+    if (!expect(
+            parser,
+            TOKEN_REGISTER,
+            "expected 'register'")) {
+
+        return NULL;
+    }
+
+    ASTNode *register_node = ast_create(
+        AST_REGISTER,
+        NULL
+    );
+
+    if (register_node == NULL) {
+        return NULL;
+    }
+
+    /*
+     * register ('filename'):
+     *
+     * The filename is metadata for the register.
+     */
+    if (check(parser, TOKEN_LPAREN)) {
+        advance_parser(parser);
+
+        if (!check(parser, TOKEN_STRING) &&
+            !check(parser, TOKEN_IDENTIFIER)) {
+
+            parser_error(
+                parser,
+                "expected register name"
+            );
+
+            ast_free(register_node);
+            return NULL;
+        }
+
+        Token *name = advance_parser(parser);
+
+        register_node->value = malloc(
+            strlen(name->value) + 1
+        );
+
+        if (register_node->value != NULL) {
+            strcpy(
+                register_node->value,
+                name->value
+            );
+        }
+
+        if (!expect(
+                parser,
+                TOKEN_RPAREN,
+                "expected ')' after register name")) {
+
+            ast_free(register_node);
+            return NULL;
+        }
+    }
+
+    if (check(parser, TOKEN_COLON)) {
+        advance_parser(parser);
+    }
+
+    while (!check(parser, TOKEN_SEMICOLON) &&
+           !check(parser, TOKEN_EOF)) {
+
+        ASTNode *state =
+            parse_register_state(parser);
+
+        if (state == NULL) {
+            ast_free(register_node);
+            return NULL;
+        }
+
+        ast_add_child(register_node, state);
+
+        if (check(parser, TOKEN_COMMA)) {
+            advance_parser(parser);
+            continue;
+        }
+
+        break;
+    }
+
+    if (!expect(
+            parser,
+            TOKEN_SEMICOLON,
+            "expected ';' at end of register")) {
+
+        ast_free(register_node);
+        return NULL;
+    }
+
+    return register_node;
+}
+
+static ASTNode *parse_constant(Parser *parser)
+{
+    if (!expect(
+            parser,
+            TOKEN_CONSTANT,
+            "expected 'constant'")) {
+
+        return NULL;
+    }
+
+    if (!expect(
+            parser,
+            TOKEN_COLON,
+            "expected ':' after 'constant'")) {
+
+        return NULL;
+    }
+
+    ASTNode *constant = ast_create(
+        AST_CONSTANT,
+        NULL
+    );
+
+    if (constant == NULL) {
+        return NULL;
+    }
+
+    ASTNode *value = parse_value(parser);
+
+    if (value == NULL) {
+        ast_free(constant);
+        return NULL;
+    }
+
+    ast_add_child(constant, value);
+
+    return constant;
+}
+
+static ASTNode *parse_push(Parser *parser)
+{
+    if (!expect(
+            parser,
+            TOKEN_PUSH,
+            "expected 'push'")) {
+
+        return NULL;
+    }
+
+    ASTNode *node = ast_create(
+        AST_PUSH,
+        "push"
+    );
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    ASTNode *value = parse_value(parser);
+
+    if (value == NULL) {
+        ast_free(node);
+        return NULL;
+    }
+
+    ast_add_child(node, value);
+
+    return node;
+}
+
+static ASTNode *parse_pop(Parser *parser)
+{
+    if (!expect(
+            parser,
+            TOKEN_POP,
+            "expected 'pop'")) {
+
+        return NULL;
+    }
+
+    ASTNode *node = ast_create(
+        AST_POP,
+        "pop"
+    );
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    return node;
+}
+
+static ASTNode *parse_state_operation(Parser *parser)
+{
+    if (!expect(
+            parser,
+            TOKEN_STATE,
+            "expected 'state'")) {
+
+        return NULL;
+    }
+
+    if (!expect(
+            parser,
+            TOKEN_COLON,
+            "expected ':' after 'state'")) {
+
+        return NULL;
+    }
+
+    if (!check(parser, TOKEN_IDENTIFIER)) {
+        parser_error(
+            parser,
+            "expected state name"
+        );
+
+        return NULL;
+    }
+
+    Token *state_name = advance_parser(parser);
+
+    ASTNode *node = ast_create(
+        AST_STATE_OPERATION,
+        state_name->value
+    );
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    if (!expect(
+            parser,
+            TOKEN_LPAREN,
+            "expected '(' after state name")) {
+
+        ast_free(node);
+        return NULL;
+    }
+
+    ASTNode *operation = NULL;
+
+    if (check(parser, TOKEN_PUSH)) {
+        operation = parse_push(parser);
+    }
+    else if (check(parser, TOKEN_POP)) {
+        operation = parse_pop(parser);
+    }
+    else {
+        parser_error(
+            parser,
+            "expected state operation 'push' or 'pop'"
+        );
+
+        ast_free(node);
+        return NULL;
+    }
+
+    if (operation == NULL) {
+        ast_free(node);
+        return NULL;
+    }
+
+    ast_add_child(node, operation);
+
+    if (!expect(
+            parser,
+            TOKEN_RPAREN,
+            "expected ')' after state operation")) {
+
+        ast_free(node);
+        return NULL;
+    }
+
+    return node;
 }
 
 static ASTNode *parse_contract_call(Parser *parser)
@@ -112,6 +499,7 @@ static ASTNode *parse_contract_call(Parser *parser)
             parser,
             TOKEN_LPAREN,
             "expected '(' before contract call")) {
+
         return NULL;
     }
 
@@ -151,7 +539,8 @@ static ASTNode *parse_contract_call(Parser *parser)
             ast_add_child(node, arg);
         }
         else if (check(parser, TOKEN_IDENTIFIER) ||
-                 check(parser, TOKEN_STRING)) {
+                 check(parser, TOKEN_STRING) ||
+                 check(parser, TOKEN_NUMBER)) {
 
             Token *argument = advance_parser(parser);
 
@@ -184,6 +573,46 @@ static ASTNode *parse_contract_call(Parser *parser)
     return node;
 }
 
+static ASTNode *parse_condition(Parser *parser)
+{
+    if (check(parser, TOKEN_EXPRESSION)) {
+        Token *token = advance_parser(parser);
+
+        return ast_create(
+            AST_EXPRESSION,
+            token->value
+        );
+    }
+
+    if (check(parser, TOKEN_STRING) ||
+        check(parser, TOKEN_IDENTIFIER) ||
+        check(parser, TOKEN_NUMBER)) {
+
+        Token *token = advance_parser(parser);
+
+        return ast_create(
+            AST_EXPRESSION,
+            token->value
+        );
+    }
+
+    if (check(parser, TOKEN_RESULT)) {
+        Token *token = advance_parser(parser);
+
+        return ast_create(
+            AST_RESULT,
+            token->value
+        );
+    }
+
+    parser_error(
+        parser,
+        "expected condition"
+    );
+
+    return NULL;
+}
+
 static ASTNode *parse_operation(Parser *parser)
 {
     if (check(parser, TOKEN_TERMINATE)) {
@@ -204,16 +633,17 @@ static ASTNode *parse_if(Parser *parser)
             parser,
             TOKEN_IF,
             "expected 'if'")) {
+
         return NULL;
     }
 
-    ASTNode *node = ast_create(AST_IF, NULL);
+    ASTNode *node = ast_create(
+        AST_IF,
+        NULL
+    );
 
-    if (node == NULL) {
-        return NULL;
-    }
-
-    ASTNode *condition = parse_condition(parser);
+    ASTNode *condition =
+        parse_condition(parser);
 
     if (condition == NULL) {
         ast_free(node);
@@ -231,7 +661,8 @@ static ASTNode *parse_if(Parser *parser)
         return NULL;
     }
 
-    ASTNode *operation = parse_operation(parser);
+    ASTNode *operation =
+        parse_operation(parser);
 
     if (operation == NULL) {
         ast_free(node);
@@ -245,27 +676,16 @@ static ASTNode *parse_if(Parser *parser)
 
 static ASTNode *parse_else_if(Parser *parser)
 {
-    if (!expect(
-            parser,
-            TOKEN_ELSE,
-            "expected 'else'")) {
-        return NULL;
-    }
+    advance_parser(parser);
+    advance_parser(parser);
 
-    if (!expect(
-            parser,
-            TOKEN_IF,
-            "expected 'if' after 'else'")) {
-        return NULL;
-    }
+    ASTNode *node = ast_create(
+        AST_ELSE_IF,
+        NULL
+    );
 
-    ASTNode *node = ast_create(AST_ELSE_IF, NULL);
-
-    if (node == NULL) {
-        return NULL;
-    }
-
-    ASTNode *condition = parse_condition(parser);
+    ASTNode *condition =
+        parse_condition(parser);
 
     if (condition == NULL) {
         ast_free(node);
@@ -283,7 +703,8 @@ static ASTNode *parse_else_if(Parser *parser)
         return NULL;
     }
 
-    ASTNode *operation = parse_operation(parser);
+    ASTNode *operation =
+        parse_operation(parser);
 
     if (operation == NULL) {
         ast_free(node);
@@ -297,20 +718,15 @@ static ASTNode *parse_else_if(Parser *parser)
 
 static ASTNode *parse_else(Parser *parser)
 {
-    if (!expect(
-            parser,
-            TOKEN_ELSE,
-            "expected 'else'")) {
-        return NULL;
-    }
+    advance_parser(parser);
 
-    ASTNode *node = ast_create(AST_ELSE, NULL);
+    ASTNode *node = ast_create(
+        AST_ELSE,
+        NULL
+    );
 
-    if (node == NULL) {
-        return NULL;
-    }
-
-    ASTNode *operation = parse_operation(parser);
+    ASTNode *operation =
+        parse_operation(parser);
 
     if (operation == NULL) {
         ast_free(node);
@@ -322,57 +738,13 @@ static ASTNode *parse_else(Parser *parser)
     return node;
 }
 
-static ASTNode *parse_state(Parser *parser)
+static ASTNode *parse_transition(Parser *parser)
 {
     if (!expect(
             parser,
-            TOKEN_STATE,
-            "expected 'state'")) {
-        return NULL;
-    }
-
-    if (!expect(
-            parser,
-            TOKEN_COLON,
-            "expected ':' after 'state'")) {
-        return NULL;
-    }
-
-    if (!check(parser, TOKEN_IDENTIFIER)) {
-        parser_error(
-            parser,
-            "expected state name"
-        );
-
-        return NULL;
-    }
-
-    Token *state_name = advance_parser(parser);
-
-    ASTNode *node = ast_create(
-        AST_STATE,
-        state_name->value
-    );
-
-    if (node == NULL) {
-        return NULL;
-    }
-
-    if (!expect(
-            parser,
-            TOKEN_COMMA,
-            "expected ',' after state")) {
-
-        ast_free(node);
-        return NULL;
-    }
-
-    if (!expect(
-            parser,
             TOKEN_TRANSITION,
-            "expected 'transition' after state")) {
+            "expected 'transition'")) {
 
-        ast_free(node);
         return NULL;
     }
 
@@ -381,7 +753,6 @@ static ASTNode *parse_state(Parser *parser)
             TOKEN_LPAREN,
             "expected '(' after transition")) {
 
-        ast_free(node);
         return NULL;
     }
 
@@ -393,18 +764,15 @@ static ASTNode *parse_state(Parser *parser)
             "expected transition reference"
         );
 
-        ast_free(node);
         return NULL;
     }
 
     Token *transition = advance_parser(parser);
 
-    ASTNode *transition_node = ast_create(
+    ASTNode *node = ast_create(
         AST_TRANSITION,
         transition->value
     );
-
-    ast_add_child(node, transition_node);
 
     if (!expect(
             parser,
@@ -424,6 +792,7 @@ static ASTNode *parse_context(Parser *parser)
             parser,
             TOKEN_CONTEXT,
             "expected 'context'")) {
+
         return NULL;
     }
 
@@ -432,11 +801,8 @@ static ASTNode *parse_context(Parser *parser)
         NULL
     );
 
-    if (node == NULL) {
-        return NULL;
-    }
-
-    ASTNode *expression = parse_condition(parser);
+    ASTNode *expression =
+        parse_condition(parser);
 
     if (expression == NULL) {
         ast_free(node);
@@ -472,7 +838,8 @@ static ASTNode *parse_context(Parser *parser)
         return NULL;
     }
 
-    ASTNode *rule_expression = parse_condition(parser);
+    ASTNode *rule_expression =
+        parse_condition(parser);
 
     if (rule_expression == NULL) {
         ast_free(node);
@@ -505,6 +872,7 @@ static ASTNode *parse_logic(Parser *parser)
             parser,
             TOKEN_LOGIC,
             "expected 'logic'")) {
+
         return NULL;
     }
 
@@ -513,23 +881,20 @@ static ASTNode *parse_logic(Parser *parser)
         NULL
     );
 
-    if (logic == NULL) {
-        return NULL;
-    }
+    ASTNode *question =
+        parse_condition(parser);
 
-    ASTNode *condition = parse_condition(parser);
-
-    if (condition == NULL) {
+    if (question == NULL) {
         ast_free(logic);
         return NULL;
     }
 
-    ast_add_child(logic, condition);
+    ast_add_child(logic, question);
 
     if (!expect(
             parser,
             TOKEN_SEMICOLON,
-            "expected ';' after logic condition")) {
+            "expected ';' after logic question")) {
 
         ast_free(logic);
         return NULL;
@@ -538,63 +903,116 @@ static ASTNode *parse_logic(Parser *parser)
     while (!check(parser, TOKEN_EXECUTE) &&
            !check(parser, TOKEN_EOF)) {
 
-        ASTNode *statement = NULL;
-
         if (check(parser, TOKEN_IF)) {
-    statement = parse_if(parser);
+            ASTNode *if_node =
+                parse_if(parser);
 
-    if (statement != NULL) {
-        ast_add_child(logic, statement);
-        statement = NULL;
-    }
-
-    while (check(parser, TOKEN_ELSE)) {
-
-        if (parser->current + 1 < parser->tokens->count &&
-            parser->tokens->items[
-                parser->current + 1
-            ].type == TOKEN_IF) {
-
-            ASTNode *else_if = parse_else_if(parser);
-
-            if (else_if != NULL) {
-                ast_add_child(logic, else_if);
-            }
-        }
-        else {
-            ASTNode *else_node = parse_else(parser);
-
-            if (else_node != NULL) {
-                ast_add_child(logic, else_node);
+            if (if_node != NULL) {
+                ast_add_child(logic, if_node);
             }
 
-            break;
-        }
-    }
-}
-        else if (check(parser, TOKEN_STATE)) {
-            statement = parse_state(parser);
-        }
-        else if (check(parser, TOKEN_CONTEXT)) {
-            statement = parse_context(parser);
-        }
-        else {
-            parser_error(
-                parser,
-                "unexpected statement inside logic"
-            );
+            while (check(parser, TOKEN_ELSE)) {
 
-            advance_parser(parser);
+                if (parser->current + 1 <
+                    parser->tokens->count &&
+                    parser->tokens->items[
+                        parser->current + 1
+                    ].type == TOKEN_IF) {
+
+                    ASTNode *else_if =
+                        parse_else_if(parser);
+
+                    if (else_if != NULL) {
+                        ast_add_child(logic, else_if);
+                    }
+                }
+                else {
+                    ASTNode *else_node =
+                        parse_else(parser);
+
+                    if (else_node != NULL) {
+                        ast_add_child(logic, else_node);
+                    }
+
+                    break;
+                }
+            }
+
+            if (check(parser, TOKEN_SEMICOLON)) {
+                advance_parser(parser);
+            }
+
             continue;
         }
 
-        if (statement != NULL) {
-            ast_add_child(logic, statement);
+        if (check(parser, TOKEN_CONSTANT)) {
+            ASTNode *constant =
+                parse_constant(parser);
+
+            if (constant != NULL) {
+                ast_add_child(logic, constant);
+            }
+
+            expect(
+                parser,
+                TOKEN_SEMICOLON,
+                "expected ';' after constant"
+            );
+
+            continue;
         }
 
-        if (check(parser, TOKEN_SEMICOLON)) {
-            advance_parser(parser);
+        if (check(parser, TOKEN_STATE)) {
+            ASTNode *state =
+                parse_state_operation(parser);
+
+            if (state != NULL) {
+                ast_add_child(logic, state);
+            }
+
+            if (check(parser, TOKEN_COMMA)) {
+                advance_parser(parser);
+            }
+
+            continue;
         }
+
+        if (check(parser, TOKEN_TRANSITION)) {
+            ASTNode *transition =
+                parse_transition(parser);
+
+            if (transition != NULL) {
+                ast_add_child(logic, transition);
+            }
+
+            if (check(parser, TOKEN_SEMICOLON)) {
+                advance_parser(parser);
+            }
+
+            continue;
+        }
+
+        if (check(parser, TOKEN_CONTEXT)) {
+            ASTNode *context =
+                parse_context(parser);
+
+            if (context != NULL) {
+                ast_add_child(logic, context);
+            }
+
+            if (check(parser, TOKEN_SEMICOLON)) {
+                advance_parser(parser);
+            }
+
+            continue;
+        }
+
+        parser_error(
+            parser,
+            "unexpected statement inside logic"
+        );
+
+        advance_parser(parser);
     }
 
     return logic;
@@ -602,12 +1020,7 @@ static ASTNode *parse_logic(Parser *parser)
 
 static ASTNode *parse_execute(Parser *parser)
 {
-    if (!expect(
-            parser,
-            TOKEN_EXECUTE,
-            "expected 'execute'")) {
-        return NULL;
-    }
+    advance_parser(parser);
 
     return ast_create(
         AST_EXECUTE,
@@ -637,28 +1050,55 @@ ASTNode *parser_parse(TokenList *tokens)
     }
 
     while (!check(&parser, TOKEN_EOF)) {
+
+        if (check(&parser, TOKEN_REGISTER)) {
+            ASTNode *register_node =
+                parse_register(&parser);
+
+            if (register_node != NULL) {
+                ast_add_child(
+                    program,
+                    register_node
+                );
+            }
+
+            continue;
+        }
+
         if (check(&parser, TOKEN_LOGIC)) {
-            ASTNode *logic = parse_logic(&parser);
+            ASTNode *logic =
+                parse_logic(&parser);
 
             if (logic != NULL) {
-                ast_add_child(program, logic);
+                ast_add_child(
+                    program,
+                    logic
+                );
             }
+
+            continue;
         }
-        else if (check(&parser, TOKEN_EXECUTE)) {
-            ASTNode *execute = parse_execute(&parser);
+
+        if (check(&parser, TOKEN_EXECUTE)) {
+            ASTNode *execute =
+                parse_execute(&parser);
 
             if (execute != NULL) {
-                ast_add_child(program, execute);
+                ast_add_child(
+                    program,
+                    execute
+                );
             }
-        }
-        else {
-            parser_error(
-                &parser,
-                "expected 'logic' or 'execute'"
-            );
 
-            advance_parser(&parser);
+            continue;
         }
+
+        parser_error(
+            &parser,
+            "expected 'register', 'logic', or 'execute'"
+        );
+
+        advance_parser(&parser);
     }
 
     if (parser.had_error) {
