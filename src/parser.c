@@ -990,19 +990,23 @@ static ASTNode *parse_logic(Parser *parser)
 }
 
         if (check(parser, TOKEN_STATE)) {
-            ASTNode *state =
-                parse_state_operation(parser);
+    ASTNode *state =
+        parse_state_operation(parser);
 
-            if (state != NULL) {
-                ast_add_child(logic, state);
-            }
+    if (state != NULL) {
+        ast_add_child(logic, state);
+    }
 
-            if (check(parser, TOKEN_COMMA)) {
-                advance_parser(parser);
-            }
+    if (check(parser, TOKEN_COMMA)) {
+        advance_parser(parser);
+    }
+    else if (check(parser, TOKEN_SEMICOLON)) {
+        advance_parser(parser);
+        break;
+    }
 
-            continue;
-        }
+    continue;
+}
 
         if (check(parser, TOKEN_TRANSITION)) {
             ASTNode *transition =
