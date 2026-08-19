@@ -1,0 +1,34 @@
+register ('everything'):
+
+    state: integer = 42,
+    state: decimal = 3.14159,
+    state: name = 'Zia',
+    state: expression = {x + 1 = 2},
+
+    state: fruits, list = {'apple', 'banana', 'blueberry'},
+    state: waiting, queue = {'first', 'second', 'third'},
+    state: history, stack = {'older', 'old'},
+    state: tree, branch = {'50', '25', '75', '10', '30'};
+
+logic {x > 0};
+
+    constant: x < y;
+
+    state: fruits (push 'strawberry'),
+    state: fruits (push 'raspberry'),
+
+    state: waiting (push 'fourth'),
+    state: waiting (pop),
+
+    state: history (push 'newest'),
+    state: history (pop),
+
+    state: tree (push '60'),
+    state: tree (push '5'),
+
+    transition ('none');
+
+    context {x + 1 = 2},
+    rule ('x not equal 0');
+
+execute

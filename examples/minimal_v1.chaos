@@ -1,0 +1,18 @@
+register ('minimal'):
+
+    state: x = 1,
+    state: empty_list, list = {},
+    state: empty_queue, queue = {},
+    state: empty_stack, stack = {},
+    state: empty_branch, branch = {};
+
+logic {x};
+
+    constant: 1;
+
+    state: empty_list (push 'one'),
+    state: empty_queue (pop),
+    state: empty_stack (pop),
+    state: empty_branch (push '10');
+
+execute
