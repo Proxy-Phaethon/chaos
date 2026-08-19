@@ -541,6 +541,10 @@ const char *token_type_name(TokenType type)
         case TOKEN_CONSTANT:    return "CONSTANT";
         case TOKEN_PUSH:        return "PUSH";
         case TOKEN_POP:         return "POP";
+        case TOKEN_LIST:        return "LIST";
+        case TOKEN_QUEUE:       return "QUEUE";
+        case TOKEN_STACK:       return "STACK";
+        case TOKEN_BRANCH:      return "BRANCH";
 
         case TOKEN_LPAREN:      return "LPAREN";
         case TOKEN_RPAREN:      return "RPAREN";
