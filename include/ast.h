@@ -26,6 +26,7 @@ typedef enum {
     AST_TERMINATE,
 
     AST_STATE_OPERATION,
+    AST_DATA_TYPE,
     AST_PUSH,
     AST_POP,
 
