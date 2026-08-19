@@ -1,0 +1,15 @@
+register ('structures'):
+
+    state: things, list = {'a', 'b', 'c'},
+    state: waiting, queue = {'first', 'second'},
+    state: history, stack = {'old', 'older'},
+    state: tree, branch = {'10', '5', '20'};
+
+logic {some complicated equation};
+
+    state: things (push 'd'),
+    state: waiting (push 'third'),
+    state: history (pop),
+    state: tree (push '15');
+
+execute

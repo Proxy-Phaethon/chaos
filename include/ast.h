@@ -26,7 +26,6 @@ typedef enum {
     AST_TERMINATE,
 
     AST_STATE_OPERATION,
-    AST_DATA_TYPE,
     AST_PUSH,
     AST_POP,
 
@@ -34,13 +33,16 @@ typedef enum {
     AST_CONTEXT,
     AST_RULE,
 
-    AST_LIST,
-    AST_QUEUE,
-    AST_STACK,
-    AST_BRANCH,
-
     AST_EXECUTE
 } ASTType;
+
+typedef enum {
+    DATA_TYPE_NONE,
+    DATA_TYPE_LIST,
+    DATA_TYPE_QUEUE,
+    DATA_TYPE_STACK,
+    DATA_TYPE_BRANCH
+} DataType;
 
 typedef struct ASTNode {
     ASTType type;
