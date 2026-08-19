@@ -34,6 +34,11 @@ typedef enum {
     AST_CONTEXT,
     AST_RULE,
 
+    AST_LIST,
+    AST_QUEUE,
+    AST_STACK,
+    AST_BRANCH,
+
     AST_EXECUTE
 } ASTType;
 
