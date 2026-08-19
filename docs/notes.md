@@ -52,4 +52,5 @@ my face itches, i wonder if i am allergic to niacinamide. i sure hope not, or my
 
 i'm going off-track, ahem. today i'll attempt to add the register, state declarations, data structure types, constants, and push/pop commands to the lexer and parser.
 
-## Tuesday, 18th August
+## Wednesday, 19th August
+i have to pause building the language now to understand more about how algorithms and data structures work under the hood. leetcode is messed up, why do they frame the questions so weirdly? but it's at least helping me figure out what kind of operations you need to be able to do with a mathematical environment.
