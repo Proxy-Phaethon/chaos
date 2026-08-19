@@ -11,20 +11,26 @@ typedef struct {
 } Keyword;
 
 static const Keyword keywords[] = {
-    {"logic",      TOKEN_LOGIC},
-    {"if",         TOKEN_IF},
-    {"else",       TOKEN_ELSE},
-    {"state",      TOKEN_STATE},
-    {"transition", TOKEN_TRANSITION},
-    {"context",    TOKEN_CONTEXT},
-    {"rule",       TOKEN_RULE},
-    {"execute",    TOKEN_EXECUTE},
-    {"result",     TOKEN_RESULT},
-    {"terminate",  TOKEN_TERMINATE},
-    {"register",   TOKEN_REGISTER},
-    {"constant",   TOKEN_CONSTANT},
-    {"push",       TOKEN_PUSH},
-    {"pop",        TOKEN_POP}
+    {"logic",       TOKEN_LOGIC},
+    {"if",          TOKEN_IF},
+    {"else",        TOKEN_ELSE},
+    {"state",       TOKEN_STATE},
+    {"transition",  TOKEN_TRANSITION},
+    {"context",     TOKEN_CONTEXT},
+    {"rule",        TOKEN_RULE},
+    {"execute",     TOKEN_EXECUTE},
+    {"result",      TOKEN_RESULT},
+    {"terminate",   TOKEN_TERMINATE},
+    {"register",    TOKEN_REGISTER},
+    {"constant",    TOKEN_CONSTANT},
+
+    {"list",        TOKEN_LIST},
+    {"queue",       TOKEN_QUEUE},
+    {"stack",       TOKEN_STACK},
+    {"branch",      TOKEN_BRANCH},
+
+    {"push",        TOKEN_PUSH},
+    {"pop",         TOKEN_POP}
 };
 
 static const size_t keyword_count =
