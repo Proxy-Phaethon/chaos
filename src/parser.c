@@ -173,7 +173,11 @@ static ASTNode *parse_register_state(Parser *parser)
     if (check(parser, TOKEN_COMMA)) {
         advance_parser(parser);
 
-        if (!check(parser, TOKEN_IDENTIFIER)) {
+        if (!check(parser, TOKEN_LIST) &&
+            !check(parser, TOKEN_QUEUE) &&
+            !check(parser, TOKEN_STACK) &&
+            !check(parser, TOKEN_BRANCH)) {
+
             parser_error(
                 parser,
                 "expected data structure type"
@@ -397,7 +401,7 @@ static ASTNode *parse_push(Parser *parser)
 
     ASTNode *node = ast_create(
         AST_PUSH,
-        "push"
+        NULL
     );
 
     if (node == NULL) {
@@ -428,7 +432,7 @@ static ASTNode *parse_pop(Parser *parser)
 
     ASTNode *node = ast_create(
         AST_POP,
-        "pop"
+        NULL
     );
 
     if (node == NULL) {
