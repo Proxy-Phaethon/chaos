@@ -24,6 +24,12 @@ typedef enum {
     TOKEN_TERMINATE,
     TOKEN_REGISTER,
     TOKEN_CONSTANT,
+
+    TOKEN_LIST,
+    TOKEN_QUEUE,
+    TOKEN_STACK,
+    TOKEN_BRANCH,
+
     TOKEN_PUSH,
     TOKEN_POP,
 
