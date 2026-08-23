@@ -61,3 +61,15 @@ i have to pause building the language now to understand more about how algorithm
 oops, skipped a few days. i forgot where i left off.
 
 ah yes, the runtime.
+
+ok, the runtime works. next step is to implement the data structure semantics.
+List runtime semantics
+Queue runtime semantics
+Stack runtime semantics
+Actual branch/BST implementation
+Expression evaluation
+Constants
+Transitions
+Contexts/rules
+Contracts
+execute semantics
