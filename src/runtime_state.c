@@ -67,13 +67,9 @@ RuntimeValue *runtime_value_create(
         type == RUNTIME_VALUE_STACK ||
         type == RUNTIME_VALUE_BRANCH) {
 
-        result->items = NULL;
-        result->item_count = 0;
-        result->item_capacity = 0;
-
         /*
-         * Initial collection contents will be populated
-         * by the runtime when it processes the AST.
+         * Collection contents are populated separately
+         * by the runtime.
          */
         (void)value;
 
@@ -98,7 +94,16 @@ void runtime_value_free(RuntimeValue *value)
         return;
     }
 
-    runtime_value_free_contents(value);
+    free(value->scalar);
+
+    for (size_t i = 0;
+         i < value->item_count;
+         i++) {
+
+        free(value->items[i]);
+    }
+
+    free(value->items);
     free(value);
 }
 
@@ -132,8 +137,16 @@ RuntimeState *runtime_state_create(
         return NULL;
     }
 
+    /*
+     * Move the RuntimeValue contents into the state.
+     */
     state->value = *runtime_value;
 
+    /*
+     * The RuntimeValue structure itself is no
+     * longer needed because its contents now belong
+     * to the state.
+     */
     free(runtime_value);
 
     state->next = NULL;
@@ -243,15 +256,16 @@ char *runtime_state_pop(
     size_t index;
 
     /*
-     * Stack:
-     * remove the newest item.
+     * Stack = last in, first out.
      */
     if (value->type == RUNTIME_VALUE_STACK) {
         index = value->item_count - 1;
     }
     /*
-     * Queue:
-     * remove the oldest item.
+     * Queue = first in, first out.
+     *
+     * Lists and branches currently use the
+     * first item as their removal position.
      */
     else {
         index = 0;
@@ -259,8 +273,15 @@ char *runtime_state_pop(
 
     char *result = value->items[index];
 
+    /*
+     * Removing the first item requires shifting
+     * everything else toward the beginning.
+     */
     if (index == 0) {
-        for (size_t i = 1; i < value->item_count; i++) {
+        for (size_t i = 1;
+             i < value->item_count;
+             i++) {
+
             value->items[i - 1] = value->items[i];
         }
     }
@@ -272,19 +293,36 @@ char *runtime_state_pop(
     return result;
 }
 
-void runtime_value_free_contents(RuntimeValue *value)
+void runtime_state_store_free(
+    RuntimeStateStore *store)
 {
-    if (value == NULL) {
+    if (store == NULL) {
         return;
     }
 
-    free(value->scalar);
+    RuntimeState *current = store->head;
 
-    for (size_t i = 0; i < value->item_count; i++) {
-        free(value->items[i]);
+    while (current != NULL) {
+        RuntimeState *next = current->next;
+
+        free(current->name);
+
+        free(current->value.scalar);
+
+        for (size_t i = 0;
+             i < current->value.item_count;
+             i++) {
+
+            free(current->value.items[i]);
+        }
+
+        free(current->value.items);
+        free(current);
+
+        current = next;
     }
 
-    free(value->items);
+    free(store);
 }
 
 static const char *runtime_value_type_name(
