@@ -56,3 +56,6 @@ i'm going off-track, ahem. today i'll attempt to add the register, state declara
 i have to pause building the language now to understand more about how algorithms and data structures work under the hood. leetcode is messed up, why do they frame the questions so weirdly? but it's at least helping me figure out what kind of operations you need to be able to do with a mathematical environment.
 
 12.26 p.m. - the lexer, parser, and AST are functional for V1 syntax. next milestone is the runtime. shit.
+
+## Sunday, 23rd August
+oops, skipped a few days. i forgot where i left off.
