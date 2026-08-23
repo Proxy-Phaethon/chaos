@@ -38,6 +38,7 @@ typedef struct {
 /* Store */
 RuntimeStateStore *runtime_state_store_create(void);
 void runtime_state_store_free(RuntimeStateStore *store);
+void runtime_value_free_contents(RuntimeValue *value);
 
 RuntimeState *runtime_state_create(
     const char *name,
