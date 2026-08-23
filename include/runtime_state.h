@@ -17,8 +17,16 @@ typedef enum {
 typedef struct RuntimeValue {
     RuntimeValueType type;
 
+    /*
+     * Used for scalar values:
+     * numbers, strings, expressions.
+     */
     char *scalar;
 
+    /*
+     * Used for data structures:
+     * list, queue, stack, branch.
+     */
     char **items;
     size_t item_count;
     size_t item_capacity;
@@ -35,15 +43,13 @@ typedef struct {
     RuntimeState *head;
 } RuntimeStateStore;
 
-/* Store */
-RuntimeStateStore *runtime_state_store_create(void);
-void runtime_state_store_free(RuntimeStateStore *store);
-void runtime_value_free_contents(RuntimeValue *value);
 
-RuntimeState *runtime_state_create(
-    const char *name,
-    RuntimeValueType type,
-    const char *value
+/* Store */
+
+RuntimeStateStore *runtime_state_store_create(void);
+
+void runtime_state_store_free(
+    RuntimeStateStore *store
 );
 
 void runtime_state_store_add(
@@ -56,15 +62,31 @@ RuntimeState *runtime_state_find(
     const char *name
 );
 
+
 /* Values */
+
 RuntimeValue *runtime_value_create(
     RuntimeValueType type,
     const char *value
 );
 
-void runtime_value_free(RuntimeValue *value);
+void runtime_value_free(
+    RuntimeValue *value
+);
+
+void runtime_value_free_contents(
+    RuntimeValue *value
+);
+
+RuntimeState *runtime_state_create(
+    const char *name,
+    RuntimeValueType type,
+    const char *value
+);
+
 
 /* Data structure operations */
+
 int runtime_state_push(
     RuntimeState *state,
     const char *value
@@ -74,7 +96,9 @@ char *runtime_state_pop(
     RuntimeState *state
 );
 
+
 /* Debugging */
+
 void runtime_state_print(
     const RuntimeStateStore *store
 );
