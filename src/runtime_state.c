@@ -278,31 +278,19 @@ char *runtime_state_pop(
     return result;
 }
 
-void runtime_state_store_free(
-    RuntimeStateStore *store)
+void runtime_value_free_contents(RuntimeValue *value)
 {
-    if (store == NULL) {
+    if (value == NULL) {
         return;
     }
 
-    RuntimeState *current = store->head;
+    free(value->scalar);
 
-    while (current != NULL) {
-        RuntimeState *next = current->next;
-
-        free(current->name);
-        runtime_value_free(&current->value);
-
-        /*
-         * runtime_value_free() expects a heap-allocated
-         * RuntimeValue, so only its contents are freed here.
-         */
-        free(current);
-
-        current = next;
+    for (size_t i = 0; i < value->item_count; i++) {
+        free(value->items[i]);
     }
 
-    free(store);
+    free(value->items);
 }
 
 static const char *runtime_value_type_name(
