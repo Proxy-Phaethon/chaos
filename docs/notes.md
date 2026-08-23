@@ -59,3 +59,5 @@ i have to pause building the language now to understand more about how algorithm
 
 ## Sunday, 23rd August
 oops, skipped a few days. i forgot where i left off.
+
+ah yes, the runtime.
