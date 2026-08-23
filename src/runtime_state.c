@@ -405,3 +405,24 @@ void runtime_state_print(
         current = current->next;
     }
 }
+
+void runtime_state_store_free(RuntimeStateStore *store)
+{
+    if (store == NULL) {
+        return;
+    }
+
+    RuntimeState *current = store->head;
+
+    while (current != NULL) {
+        RuntimeState *next = current->next;
+
+        free(current->name);
+        runtime_value_free_contents(&current->value);
+        free(current);
+
+        current = next;
+    }
+
+    free(store);
+}
