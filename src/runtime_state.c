@@ -98,13 +98,7 @@ void runtime_value_free(RuntimeValue *value)
         return;
     }
 
-    free(value->scalar);
-
-    for (size_t i = 0; i < value->item_count; i++) {
-        free(value->items[i]);
-    }
-
-    free(value->items);
+    runtime_value_free_contents(value);
     free(value);
 }
 
