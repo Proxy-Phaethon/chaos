@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+/*
+ * Copy a string into newly allocated memory.
+ */
 static char *copy_string(const char *source)
 {
     if (source == NULL) {
@@ -21,8 +25,16 @@ static char *copy_string(const char *source)
     return result;
 }
 
+
+/*
+ * Make sure a collection has room for another item.
+ */
 static int ensure_capacity(RuntimeValue *value)
 {
+    if (value == NULL) {
+        return 0;
+    }
+
     if (value->item_count < value->item_capacity) {
         return 1;
     }
@@ -47,6 +59,23 @@ static int ensure_capacity(RuntimeValue *value)
     return 1;
 }
 
+
+/*
+ * Create a runtime value.
+ *
+ * Scalar values use:
+ *
+ *     scalar
+ *
+ * Data structures use:
+ *
+ *     items
+ *     item_count
+ *     item_capacity
+ *
+ * Initial collection contents are populated later
+ * by the runtime when the AST is executed.
+ */
 RuntimeValue *runtime_value_create(
     RuntimeValueType type,
     const char *value)
@@ -67,8 +96,12 @@ RuntimeValue *runtime_value_create(
         type == RUNTIME_VALUE_STACK ||
         type == RUNTIME_VALUE_BRANCH) {
 
+        result->items = NULL;
+        result->item_count = 0;
+        result->item_capacity = 0;
+
         /*
-         * Collection contents are populated separately
+         * Collection contents will be populated
          * by the runtime.
          */
         (void)value;
@@ -76,6 +109,9 @@ RuntimeValue *runtime_value_create(
         return result;
     }
 
+    /*
+     * Scalar value.
+     */
     if (value != NULL) {
         result->scalar = copy_string(value);
 
@@ -88,30 +124,60 @@ RuntimeValue *runtime_value_create(
     return result;
 }
 
-void runtime_value_free(RuntimeValue *value)
+
+/*
+ * Free the contents owned by a RuntimeValue.
+ *
+ * This does NOT free the RuntimeValue itself.
+ */
+void runtime_value_free_contents(RuntimeValue *value)
 {
     if (value == NULL) {
         return;
     }
 
     free(value->scalar);
+    value->scalar = NULL;
 
-    for (size_t i = 0;
-         i < value->item_count;
-         i++) {
-
+    for (size_t i = 0; i < value->item_count; i++) {
         free(value->items[i]);
     }
 
     free(value->items);
+
+    value->items = NULL;
+    value->item_count = 0;
+    value->item_capacity = 0;
+}
+
+
+/*
+ * Free an entire RuntimeValue.
+ */
+void runtime_value_free(RuntimeValue *value)
+{
+    if (value == NULL) {
+        return;
+    }
+
+    runtime_value_free_contents(value);
+
     free(value);
 }
 
+
+/*
+ * Create a runtime state.
+ */
 RuntimeState *runtime_state_create(
     const char *name,
     RuntimeValueType type,
     const char *value)
 {
+    if (name == NULL) {
+        return NULL;
+    }
+
     RuntimeState *state = calloc(
         1,
         sizeof(RuntimeState)
@@ -138,15 +204,12 @@ RuntimeState *runtime_state_create(
     }
 
     /*
-     * Move the RuntimeValue contents into the state.
+     * Move the RuntimeValue contents into
+     * the state rather than allocating another
+     * RuntimeValue.
      */
     state->value = *runtime_value;
 
-    /*
-     * The RuntimeValue structure itself is no
-     * longer needed because its contents now belong
-     * to the state.
-     */
     free(runtime_value);
 
     state->next = NULL;
@@ -154,6 +217,10 @@ RuntimeState *runtime_state_create(
     return state;
 }
 
+
+/*
+ * Create an empty runtime state store.
+ */
 RuntimeStateStore *runtime_state_store_create(void)
 {
     return calloc(
@@ -162,6 +229,10 @@ RuntimeStateStore *runtime_state_store_create(void)
     );
 }
 
+
+/*
+ * Add a state to the store.
+ */
 void runtime_state_store_add(
     RuntimeStateStore *store,
     RuntimeState *state)
@@ -174,6 +245,10 @@ void runtime_state_store_add(
     store->head = state;
 }
 
+
+/*
+ * Find a state by name.
+ */
 RuntimeState *runtime_state_find(
     RuntimeStateStore *store,
     const char *name)
@@ -195,6 +270,51 @@ RuntimeState *runtime_state_find(
     return NULL;
 }
 
+
+/*
+ * Free the entire state store.
+ */
+void runtime_state_store_free(
+    RuntimeStateStore *store)
+{
+    if (store == NULL) {
+        return;
+    }
+
+    RuntimeState *current = store->head;
+
+    while (current != NULL) {
+        RuntimeState *next = current->next;
+
+        free(current->name);
+
+        runtime_value_free_contents(
+            &current->value
+        );
+
+        free(current);
+
+        current = next;
+    }
+
+    free(store);
+}
+
+
+/*
+ * Push a value onto a collection.
+ *
+ * For now, all collection types use the same
+ * underlying storage mechanism.
+ *
+ * Their actual semantics will be implemented
+ * by the runtime:
+ *
+ *     list
+ *     queue
+ *     stack
+ *     branch
+ */
 int runtime_state_push(
     RuntimeState *state,
     const char *value)
@@ -203,7 +323,8 @@ int runtime_state_push(
         return 0;
     }
 
-    RuntimeValue *runtime_value = &state->value;
+    RuntimeValue *runtime_value =
+        &state->value;
 
     if (runtime_value->type != RUNTIME_VALUE_LIST &&
         runtime_value->type != RUNTIME_VALUE_QUEUE &&
@@ -232,6 +353,25 @@ int runtime_state_push(
     return 1;
 }
 
+
+/*
+ * Pop a value from a collection.
+ *
+ * Stack:
+ *     removes newest item.
+ *
+ * Queue:
+ *     removes oldest item.
+ *
+ * List:
+ *     currently removes oldest item.
+ *
+ * Branch:
+ *     currently removes oldest item.
+ *
+ * List and branch semantics will be refined
+ * when their runtime implementations are built.
+ */
 char *runtime_state_pop(
     RuntimeState *state)
 {
@@ -239,11 +379,8 @@ char *runtime_state_pop(
         return NULL;
     }
 
-    RuntimeValue *value = &state->value;
-
-    if (value->item_count == 0) {
-        return NULL;
-    }
+    RuntimeValue *value =
+        &state->value;
 
     if (value->type != RUNTIME_VALUE_LIST &&
         value->type != RUNTIME_VALUE_QUEUE &&
@@ -253,78 +390,55 @@ char *runtime_state_pop(
         return NULL;
     }
 
+    if (value->item_count == 0) {
+        return NULL;
+    }
+
     size_t index;
 
-    /*
-     * Stack = last in, first out.
-     */
     if (value->type == RUNTIME_VALUE_STACK) {
+        /*
+         * Stack = LIFO.
+         */
         index = value->item_count - 1;
     }
-    /*
-     * Queue = first in, first out.
-     *
-     * Lists and branches currently use the
-     * first item as their removal position.
-     */
     else {
+        /*
+         * Queue/list/branch currently remove
+         * the oldest stored item.
+         */
         index = 0;
     }
 
     char *result = value->items[index];
 
     /*
-     * Removing the first item requires shifting
-     * everything else toward the beginning.
+     * If removing the first item, shift the
+     * remaining items one position to the left.
      */
     if (index == 0) {
         for (size_t i = 1;
              i < value->item_count;
              i++) {
 
-            value->items[i - 1] = value->items[i];
+            value->items[i - 1] =
+                value->items[i];
         }
     }
 
     value->item_count--;
 
-    value->items[value->item_count] = NULL;
+    value->items[
+        value->item_count
+    ] = NULL;
 
     return result;
 }
 
-void runtime_state_store_free(
-    RuntimeStateStore *store)
-{
-    if (store == NULL) {
-        return;
-    }
 
-    RuntimeState *current = store->head;
-
-    while (current != NULL) {
-        RuntimeState *next = current->next;
-
-        free(current->name);
-
-        free(current->value.scalar);
-
-        for (size_t i = 0;
-             i < current->value.item_count;
-             i++) {
-
-            free(current->value.items[i]);
-        }
-
-        free(current->value.items);
-        free(current);
-
-        current = next;
-    }
-
-    free(store);
-}
-
+/*
+ * Return a human-readable runtime value type.
+ */
 static const char *runtime_value_type_name(
     RuntimeValueType type)
 {
@@ -355,6 +469,10 @@ static const char *runtime_value_type_name(
     }
 }
 
+
+/*
+ * Print the current runtime state store.
+ */
 void runtime_state_print(
     const RuntimeStateStore *store)
 {
@@ -362,7 +480,8 @@ void runtime_state_print(
         return;
     }
 
-    const RuntimeState *current = store->head;
+    const RuntimeState *current =
+        store->head;
 
     while (current != NULL) {
         printf(
@@ -404,25 +523,4 @@ void runtime_state_print(
 
         current = current->next;
     }
-}
-
-void runtime_state_store_free(RuntimeStateStore *store)
-{
-    if (store == NULL) {
-        return;
-    }
-
-    RuntimeState *current = store->head;
-
-    while (current != NULL) {
-        RuntimeState *next = current->next;
-
-        free(current->name);
-        runtime_value_free_contents(&current->value);
-        free(current);
-
-        current = next;
-    }
-
-    free(store);
 }
