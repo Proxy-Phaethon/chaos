@@ -467,7 +467,10 @@ int runtime_execute_logic(
                 }
                 break;
 
-            case AST_STATE_OPERATION:
+case AST_LIST:
+case AST_QUEUE:
+case AST_STACK:
+case AST_BRANCH:
                 if (!runtime_execute_state_operation(
                         runtime,
                         child)) {
