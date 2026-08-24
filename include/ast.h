@@ -33,13 +33,9 @@ typedef enum {
     AST_CONTEXT,
     AST_RULE,
 
-    AST_LIST,
-    AST_QUEUE,
-    AST_STACK,
-    AST_BRANCH,
-
     AST_EXECUTE
 } ASTType;
+
 
 typedef enum {
     DATA_TYPE_NONE,
@@ -48,6 +44,7 @@ typedef enum {
     DATA_TYPE_STACK,
     DATA_TYPE_BRANCH
 } DataType;
+
 
 typedef struct ASTNode {
     ASTType type;
@@ -59,12 +56,28 @@ typedef struct ASTNode {
     size_t child_capacity;
 } ASTNode;
 
-ASTNode *ast_create(ASTType type, const char *value);
-void ast_add_child(ASTNode *parent, ASTNode *child);
 
-void ast_print(const ASTNode *node, int depth);
-void ast_free(ASTNode *node);
+ASTNode *ast_create(
+    ASTType type,
+    const char *value
+);
 
-const char *ast_type_name(ASTType type);
+void ast_add_child(
+    ASTNode *parent,
+    ASTNode *child
+);
+
+void ast_print(
+    const ASTNode *node,
+    int depth
+);
+
+void ast_free(
+    ASTNode *node
+);
+
+const char *ast_type_name(
+    ASTType type
+);
 
 #endif
