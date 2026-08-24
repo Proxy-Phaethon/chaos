@@ -80,15 +80,8 @@ int main(int argc, char **argv)
 
     printf("Parsed successfully.\n\n");
 
-    /*
-     * Print the AST so we can inspect what
-     * the parser produced.
-     */
     ast_print(program, 0);
 
-    /*
-     * Create the runtime environment.
-     */
     Runtime *runtime =
         runtime_create();
 
@@ -105,9 +98,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /*
-     * Execute the parsed Chaos program.
-     */
     printf("\nRuntime:\n");
 
     if (!runtime_execute(runtime, program)) {
@@ -124,16 +114,10 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    /*
-     * Show the resulting state store.
-     */
     printf("\nState store:\n");
 
     runtime_print_state(runtime);
 
-    /*
-     * Clean everything up.
-     */
     runtime_free(runtime);
     ast_free(program);
     lexer_free(tokens);
