@@ -442,82 +442,160 @@ static ASTNode *parse_pop(Parser *parser)
     return node;
 }
 
-static ASTNode *parse_state_operation(Parser *parser)
+static ASTNode *parse_data_structure_operation(Parser *parser)
 {
-    if (!expect(
-            parser,
-            TOKEN_STATE,
-            "expected 'state'")) {
+    ASTNode *node = NULL;
 
-        return NULL;
+    ASTType data_type;
+
+    if (check(parser, TOKEN_LIST)) {
+        data_type = AST_LIST;
     }
-
-    if (!expect(
-            parser,
-            TOKEN_COLON,
-            "expected ':' after 'state'")) {
-
-        return NULL;
+    else if (check(parser, TOKEN_QUEUE)) {
+        data_type = AST_QUEUE;
     }
-
-    if (!check(parser, TOKEN_IDENTIFIER)) {
+    else if (check(parser, TOKEN_STACK)) {
+        data_type = AST_STACK;
+    }
+    else if (check(parser, TOKEN_BRANCH)) {
+        data_type = AST_BRANCH;
+    }
+    else {
         parser_error(
             parser,
-            "expected state name"
+            "expected data structure type"
         );
 
         return NULL;
     }
 
-    Token *state_name = advance_parser(parser);
+    Token *type_token = advance_parser(parser);
 
-    ASTNode *node = ast_create(
-        AST_STATE_OPERATION,
-        state_name->value
+    if (!check(parser, TOKEN_IDENTIFIER)) {
+        parser_error(
+            parser,
+            "expected data structure name"
+        );
+
+        return NULL;
+    }
+
+    Token *name_token = advance_parser(parser);
+
+    node = ast_create(
+        AST_DATA_STRUCTURE_OPERATION,
+        name_token->value
     );
 
     if (node == NULL) {
         return NULL;
     }
 
+    /*
+     * Store the declared data structure type
+     * as the first child.
+     */
+    ASTNode *type_node = ast_create(
+        data_type,
+        type_token->value
+    );
+
+    if (type_node == NULL) {
+        ast_free(node);
+        return NULL;
+    }
+
+    ast_add_child(node, type_node);
+
+    /*
+     * Consume one or more:
+     *
+     *     (push value)
+     *     (pop)
+     *
+     * until the comma terminating the group.
+     */
+    while (!check(parser, TOKEN_COMMA) &&
+           !check(parser, TOKEN_EOF) &&
+           !check(parser, TOKEN_SEMICOLON)) {
+
+        if (!expect(
+                parser,
+                TOKEN_LPAREN,
+                "expected '(' before data structure operation")) {
+
+            ast_free(node);
+            return NULL;
+        }
+
+        ASTNode *operation = NULL;
+
+        if (check(parser, TOKEN_PUSH)) {
+            advance_parser(parser);
+
+            operation = ast_create(
+                AST_PUSH,
+                NULL
+            );
+
+            if (operation == NULL) {
+                ast_free(node);
+                return NULL;
+            }
+
+            ASTNode *value = parse_value(parser);
+
+            if (value == NULL) {
+                ast_free(operation);
+                ast_free(node);
+                return NULL;
+            }
+
+            ast_add_child(operation, value);
+        }
+        else if (check(parser, TOKEN_POP)) {
+            advance_parser(parser);
+
+            operation = ast_create(
+                AST_POP,
+                NULL
+            );
+
+            if (operation == NULL) {
+                ast_free(node);
+                return NULL;
+            }
+        }
+        else {
+            parser_error(
+                parser,
+                "expected 'push' or 'pop'"
+            );
+
+            ast_free(node);
+            return NULL;
+        }
+
+        if (!expect(
+                parser,
+                TOKEN_RPAREN,
+                "expected ')' after data structure operation")) {
+
+            ast_free(operation);
+            ast_free(node);
+            return NULL;
+        }
+
+        ast_add_child(node, operation);
+    }
+
+    /*
+     * The comma terminates the entire operation group.
+     */
     if (!expect(
             parser,
-            TOKEN_LPAREN,
-            "expected '(' after state name")) {
-
-        ast_free(node);
-        return NULL;
-    }
-
-    ASTNode *operation = NULL;
-
-    if (check(parser, TOKEN_PUSH)) {
-        operation = parse_push(parser);
-    }
-    else if (check(parser, TOKEN_POP)) {
-        operation = parse_pop(parser);
-    }
-    else {
-        parser_error(
-            parser,
-            "expected state operation 'push' or 'pop'"
-        );
-
-        ast_free(node);
-        return NULL;
-    }
-
-    if (operation == NULL) {
-        ast_free(node);
-        return NULL;
-    }
-
-    ast_add_child(node, operation);
-
-    if (!expect(
-            parser,
-            TOKEN_RPAREN,
-            "expected ')' after state operation")) {
+            TOKEN_COMMA,
+            "expected ',' after data structure operation")) {
 
         ast_free(node);
         return NULL;
