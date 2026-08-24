@@ -4,26 +4,11 @@
 #include "ast.h"
 #include "runtime_state.h"
 
-/*
- * The complete runtime environment for a Chaos program.
- *
- * More runtime systems can be added here later:
- *
- *     constants
- *     execution context
- *     output
- *     charts
- *     encoded data
- *     etc.
- */
 typedef struct {
     RuntimeStateStore *states;
 } Runtime;
 
-
-/*
- * Runtime lifecycle.
- */
+/* Runtime lifecycle */
 
 Runtime *runtime_create(void);
 
@@ -31,22 +16,14 @@ void runtime_free(
     Runtime *runtime
 );
 
+/* Execute an entire Chaos AST */
 
-/*
- * Execute an entire Chaos AST.
- *
- * Returns 1 on success.
- * Returns 0 if execution fails.
- */
 int runtime_execute(
     Runtime *runtime,
     const ASTNode *program
 );
 
-
-/*
- * Execute individual AST structures.
- */
+/* Execute individual AST structures */
 
 int runtime_execute_register(
     Runtime *runtime,
@@ -58,7 +35,7 @@ int runtime_execute_logic(
     const ASTNode *logic_node
 );
 
-int runtime_execute_state_operation(
+int runtime_execute_data_structure_operation(
     Runtime *runtime,
     const ASTNode *operation
 );
@@ -73,10 +50,7 @@ int runtime_execute_execute(
     const ASTNode *execute_node
 );
 
-
-/*
- * Debugging / inspection.
- */
+/* Debugging / inspection */
 
 void runtime_print_state(
     const Runtime *runtime
