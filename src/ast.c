@@ -91,9 +91,14 @@ const char *ast_type_name(ASTType type)
         case AST_RESULT:             return "RESULT";
         case AST_TERMINATE:          return "TERMINATE";
 
-        case AST_STATE_OPERATION:    return "STATE OPERATION";
-        case AST_PUSH:               return "PUSH";
-        case AST_POP:                return "POP";
+case AST_DATA_STRUCTURE_OPERATION:
+    return "DATA STRUCTURE OPERATION";
+
+case AST_PUSH:
+    return "PUSH";
+
+case AST_POP:
+    return "POP";
 
         case AST_TRANSITION:         return "TRANSITION";
         case AST_CONTEXT:            return "CONTEXT";
