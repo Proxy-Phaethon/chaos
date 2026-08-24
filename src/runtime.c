@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 /*
- * Convert an AST data type into a runtime data type.
+ * Convert an AST data-structure name into
+ * the corresponding runtime value type.
  */
 static RuntimeValueType runtime_data_type(
     const char *type)
@@ -34,13 +34,8 @@ static RuntimeValueType runtime_data_type(
     return RUNTIME_VALUE_STRING;
 }
 
-
 /*
  * Determine the runtime type of a scalar state.
- *
- * This is intentionally simple for now.
- * The expression system will eventually give Chaos
- * a proper type system.
  */
 static RuntimeValueType runtime_scalar_type(
     const char *value)
@@ -49,9 +44,6 @@ static RuntimeValueType runtime_scalar_type(
         return RUNTIME_VALUE_STRING;
     }
 
-    /*
-     * A very basic number check.
-     */
     char *end = NULL;
 
     strtod(value, &end);
@@ -62,7 +54,6 @@ static RuntimeValueType runtime_scalar_type(
 
     return RUNTIME_VALUE_STRING;
 }
-
 
 /*
  * Create the runtime.
@@ -89,7 +80,6 @@ Runtime *runtime_create(void)
     return runtime;
 }
 
-
 /*
  * Destroy the runtime.
  */
@@ -107,15 +97,93 @@ void runtime_free(
     free(runtime);
 }
 
+/*
+ * Add the initial contents of a data structure.
+ *
+ * The parser currently stores the collection contents
+ * as one comma-separated AST value.
+ */
+static int runtime_initialize_collection(
+    RuntimeState *state,
+    const char *value)
+{
+    if (state == NULL ||
+        value == NULL ||
+        value[0] == '\0') {
+
+        return 1;
+    }
+
+    char *contents = malloc(
+        strlen(value) + 1
+    );
+
+    if (contents == NULL) {
+        return 0;
+    }
+
+    strcpy(contents, value);
+
+    char *item = strtok(
+        contents,
+        ","
+    );
+
+    while (item != NULL) {
+
+        while (*item == ' ') {
+            item++;
+        }
+
+        size_t length = strlen(item);
+
+        while (length > 0 &&
+               (item[length - 1] == ' ' ||
+                item[length - 1] == '\n' ||
+                item[length - 1] == '\r')) {
+
+            item[length - 1] = '\0';
+            length--;
+        }
+
+        /*
+         * Remove surrounding single quotes.
+         */
+        length = strlen(item);
+
+        if (length >= 2 &&
+            item[0] == '\'' &&
+            item[length - 1] == '\'') {
+
+            item[length - 1] = '\0';
+            item++;
+        }
+
+        if (!runtime_state_push(
+                state,
+                item)) {
+
+            free(contents);
+            return 0;
+        }
+
+        item = strtok(NULL, ",");
+    }
+
+    free(contents);
+
+    return 1;
+}
 
 /*
  * Execute a REGISTER node.
  *
  * Example:
  *
- * register ('experiment'):
- *     state: x = 3,
- *     state: things, list = {'a', 'b'};
+ * register ('everything'):
+ *
+ *     state: integer = 42,
+ *     state: fruits, list = {'apple', 'banana'};
  */
 int runtime_execute_register(
     Runtime *runtime,
@@ -144,9 +212,6 @@ int runtime_execute_register(
         const char *value = NULL;
         const char *data_type = NULL;
 
-        /*
-         * Extract the state declaration.
-         */
         for (size_t j = 0;
              j < state->child_count;
              j++) {
@@ -185,14 +250,10 @@ int runtime_execute_register(
         RuntimeValueType type;
 
         if (data_type != NULL) {
-            type = runtime_data_type(
-                data_type
-            );
+            type = runtime_data_type(data_type);
         }
         else {
-            type = runtime_scalar_type(
-                value
-            );
+            type = runtime_scalar_type(value);
         }
 
         RuntimeState *runtime_state =
@@ -213,78 +274,32 @@ int runtime_execute_register(
         }
 
         /*
-         * Initial collection contents are currently
-         * stored in the AST as one comma-separated value.
-         *
-         * The parser will eventually give us proper
-         * AST_DATA_ITEMS nodes. For now, populate the
-         * collection by splitting the stored value.
+         * Populate initial list/queue/stack/branch
+         * contents.
          */
         if (data_type != NULL &&
-            value != NULL &&
-            value[0] != '\0') {
+            value != NULL) {
 
-            char *contents = malloc(
-                strlen(value) + 1
-            );
+            if (!runtime_initialize_collection(
+                    runtime_state,
+                    value)) {
 
-            if (contents == NULL) {
+                fprintf(
+                    stderr,
+                    "Runtime error: could not initialize state '%s'\n",
+                    name
+                );
+
                 free(runtime_state->name);
+
                 runtime_value_free_contents(
                     &runtime_state->value
                 );
+
                 free(runtime_state);
 
                 return 0;
             }
-
-            strcpy(contents, value);
-
-            char *item = strtok(
-                contents,
-                ","
-            );
-
-            while (item != NULL) {
-
-                while (*item == ' ') {
-                    item++;
-                }
-
-                /*
-                 * Remove surrounding single quotes.
-                 */
-                size_t length =
-                    strlen(item);
-
-                if (length >= 2 &&
-                    item[0] == '\'' &&
-                    item[length - 1] == '\'') {
-
-                    item[length - 1] = '\0';
-                    item++;
-                }
-
-                if (!runtime_state_push(
-                        runtime_state,
-                        item)) {
-
-                    free(contents);
-                    free(runtime_state->name);
-
-                    runtime_value_free_contents(
-                        &runtime_state->value
-                    );
-
-                    free(runtime_state);
-
-                    return 0;
-                }
-
-                item = strtok(NULL, ",");
-            }
-
-            free(contents);
         }
 
         runtime_state_store_add(
@@ -296,46 +311,18 @@ int runtime_execute_register(
     return 1;
 }
 
-
 /*
- * Execute a PUSH/POP state operation.
+ * Execute one PUSH or POP action.
  */
-int runtime_execute_state_operation(
-    Runtime *runtime,
-    const ASTNode *operation)
+static int runtime_execute_action(
+    RuntimeState *state,
+    const ASTNode *action)
 {
-    if (runtime == NULL ||
-        operation == NULL) {
+    if (state == NULL ||
+        action == NULL) {
 
         return 0;
     }
-
-    if (operation->value == NULL) {
-        return 0;
-    }
-
-    RuntimeState *state =
-        runtime_state_find(
-            runtime->states,
-            operation->value
-        );
-
-    if (state == NULL) {
-        fprintf(
-            stderr,
-            "Runtime error: unknown state '%s'\n",
-            operation->value
-        );
-
-        return 0;
-    }
-
-    if (operation->child_count == 0) {
-        return 0;
-    }
-
-    const ASTNode *action =
-        operation->children[0];
 
     /*
      * PUSH
@@ -343,6 +330,11 @@ int runtime_execute_state_operation(
     if (action->type == AST_PUSH) {
 
         if (action->child_count == 0) {
+            fprintf(
+                stderr,
+                "Runtime error: push requires a value\n"
+            );
+
             return 0;
         }
 
@@ -350,6 +342,11 @@ int runtime_execute_state_operation(
             action->children[0];
 
         if (value->value == NULL) {
+            fprintf(
+                stderr,
+                "Runtime error: push value is empty\n"
+            );
+
             return 0;
         }
 
@@ -359,7 +356,7 @@ int runtime_execute_state_operation(
 
             fprintf(
                 stderr,
-                "Runtime error: could not push into state '%s'\n",
+                "Runtime error: could not push into '%s'\n",
                 state->name
             );
 
@@ -401,11 +398,100 @@ int runtime_execute_state_operation(
     return 0;
 }
 
+/*
+ * Execute a data-structure operation group.
+ *
+ * New syntax:
+ *
+ * list fruits
+ *     (push 'apple')
+ *     (push 'banana'),
+ *
+ * AST:
+ *
+ * DATA STRUCTURE OPERATION: fruits
+ *     DATA_TYPE: list
+ *     PUSH
+ *         VALUE: apple
+ *     PUSH
+ *         VALUE: banana
+ */
+int runtime_execute_data_structure_operation(
+    Runtime *runtime,
+    const ASTNode *operation)
+{
+    if (runtime == NULL ||
+        operation == NULL) {
+
+        return 0;
+    }
+
+    if (operation->type !=
+        AST_DATA_STRUCTURE_OPERATION) {
+
+        return 0;
+    }
+
+    if (operation->value == NULL) {
+        fprintf(
+            stderr,
+            "Runtime error: data structure has no name\n"
+        );
+
+        return 0;
+    }
+
+    RuntimeState *state =
+        runtime_state_find(
+            runtime->states,
+            operation->value
+        );
+
+    if (state == NULL) {
+        fprintf(
+            stderr,
+            "Runtime error: unknown data structure '%s'\n",
+            operation->value
+        );
+
+        return 0;
+    }
+
+    /*
+     * The AST contains the data type as one child,
+     * followed by any number of PUSH/POP operations.
+     */
+    for (size_t i = 0;
+         i < operation->child_count;
+         i++) {
+
+        const ASTNode *child =
+            operation->children[i];
+
+        if (child->type == AST_DATA_TYPE) {
+            continue;
+        }
+
+        if (child->type != AST_PUSH &&
+            child->type != AST_POP) {
+
+            continue;
+        }
+
+        if (!runtime_execute_action(
+                state,
+                child)) {
+
+            return 0;
+        }
+    }
+
+    return 1;
+}
 
 /*
  * Execute a CONSTANT.
  *
- * At this stage constants are simply recognized.
  * Expression evaluation comes later.
  */
 int runtime_execute_constant(
@@ -434,7 +520,6 @@ int runtime_execute_constant(
 
     return 1;
 }
-
 
 /*
  * Execute a LOGIC block.
@@ -467,11 +552,8 @@ int runtime_execute_logic(
                 }
                 break;
 
-case AST_LIST:
-case AST_QUEUE:
-case AST_STACK:
-case AST_BRANCH:
-                if (!runtime_execute_state_operation(
+            case AST_DATA_STRUCTURE_OPERATION:
+                if (!runtime_execute_data_structure_operation(
                         runtime,
                         child)) {
 
@@ -480,12 +562,13 @@ case AST_BRANCH:
                 break;
 
             /*
-             * These are recognized but not executed
-             * yet. Their runtime systems come later.
+             * These systems are recognized by the parser
+             * but are not runtime semantics yet.
              */
             case AST_EXPRESSION:
             case AST_TRANSITION:
             case AST_CONTEXT:
+            case AST_RULE:
             case AST_IF:
             case AST_ELSE_IF:
             case AST_ELSE:
@@ -502,11 +585,8 @@ case AST_BRANCH:
     return 1;
 }
 
-
 /*
  * Execute the EXECUTE statement.
- *
- * For now this is simply the final runtime marker.
  */
 int runtime_execute_execute(
     Runtime *runtime,
@@ -515,13 +595,10 @@ int runtime_execute_execute(
     (void)runtime;
     (void)execute_node;
 
-    printf(
-        "EXECUTE\n"
-    );
+    printf("EXECUTE\n");
 
     return 1;
 }
-
 
 /*
  * Execute an entire Chaos program.
@@ -583,7 +660,6 @@ int runtime_execute(
 
     return 1;
 }
-
 
 /*
  * Print all current runtime states.
