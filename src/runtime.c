@@ -457,6 +457,48 @@ int runtime_execute_data_structure_operation(
         return 0;
     }
 
+    const char *type_name = NULL;
+
+    for (size_t i = 0;
+         i < operation->child_count;
+         i++) {
+
+        const ASTNode *child =
+            operation->children[i];
+
+        if (child->type == AST_DATA_TYPE) {
+            type_name = child->value;
+            break;
+        }
+    }
+
+    if (type_name == NULL) {
+        fprintf(
+            stderr,
+            "Runtime error: data structure operation for '%s' has no type\n",
+            state->name
+        );
+
+        return 0;
+    }
+
+    RuntimeValueType expected_type =
+        runtime_data_type(type_name);
+
+    if (state->value.type != expected_type) {
+        fprintf(
+            stderr,
+            "Runtime error: type mismatch for state '%s': operation expects %s, state is %s\n",
+            state->name,
+            type_name,
+            runtime_value_type_name(
+                state->value.type
+            )
+        );
+
+        return 0;
+    }
+
     /*
      * The AST contains the data type as one child,
      * followed by any number of PUSH/POP operations.

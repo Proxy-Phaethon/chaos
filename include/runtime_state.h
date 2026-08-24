@@ -78,6 +78,10 @@ void runtime_value_free_contents(
     RuntimeValue *value
 );
 
+const char *runtime_value_type_name(
+    RuntimeValueType type
+);
+
 RuntimeState *runtime_state_create(
     const char *name,
     RuntimeValueType type,

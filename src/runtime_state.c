@@ -439,7 +439,7 @@ char *runtime_state_pop(
 /*
  * Return a human-readable runtime value type.
  */
-static const char *runtime_value_type_name(
+const char *runtime_value_type_name(
     RuntimeValueType type)
 {
     switch (type) {
