@@ -80,4 +80,16 @@ const char *ast_type_name(
     ASTType type
 );
 
+typedef struct ASTNode {
+    ASTType type;
+
+    DataType data_type;
+
+    char *value;
+
+    struct ASTNode **children;
+    size_t child_count;
+    size_t child_capacity;
+} ASTNode;
+
 #endif
