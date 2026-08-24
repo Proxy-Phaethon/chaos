@@ -1067,20 +1067,16 @@ static ASTNode *parse_logic(Parser *parser)
     continue;
 }
 
-        if (check(parser, TOKEN_STATE)) {
-    ASTNode *state =
-        parse_state_operation(parser);
+if (check(parser, TOKEN_LIST) ||
+    check(parser, TOKEN_QUEUE) ||
+    check(parser, TOKEN_STACK) ||
+    check(parser, TOKEN_BRANCH)) {
 
-    if (state != NULL) {
-        ast_add_child(logic, state);
-    }
+    ASTNode *operation =
+        parse_data_structure_operation(parser);
 
-    if (check(parser, TOKEN_COMMA)) {
-        advance_parser(parser);
-    }
-    else if (check(parser, TOKEN_SEMICOLON)) {
-        advance_parser(parser);
-        break;
+    if (operation != NULL) {
+        ast_add_child(logic, operation);
     }
 
     continue;
