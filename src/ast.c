@@ -31,8 +31,9 @@ ASTNode *ast_create(
         return NULL;
     }
 
-    node->type = type;
-    node->value = copy_string(value);
+node->type = type;
+node->data_type = DATA_TYPE_NONE;
+node->value = copy_string(value);
 
     node->children = NULL;
     node->child_count = 0;
