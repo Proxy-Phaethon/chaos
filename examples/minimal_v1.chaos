@@ -10,9 +10,10 @@ logic {x};
 
     constant: 1;
 
-    state: empty_list (push 'one'),
-    state: empty_queue (pop),
-    state: empty_stack (pop),
-    state: empty_branch (push '10');
+    list empty_list (push 'one')
+        (pop),
+    queue empty_queue (pop),
+    stack empty_stack (pop),
+    branch empty_branch (push '10');
 
 execute

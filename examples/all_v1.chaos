@@ -14,17 +14,21 @@ logic {x > 0};
 
     constant: x < y;
 
-    state: fruits (push 'strawberry'),
-    state: fruits (push 'raspberry'),
+    list fruits
+        (push 'strawberry')
+        (push 'raspberry'),
 
-    state: waiting (push 'fourth'),
-    state: waiting (pop),
+    queue waiting
+        (push 'fourth')
+        (pop),
 
-    state: history (push 'newest'),
-    state: history (pop),
+    stack history
+        (push 'newest')
+        (pop),
 
-    state: tree (push '60'),
-    state: tree (push '5'),
+    branch tree
+        (push '60')
+        (push '5'),
 
     transition ('none');
 
