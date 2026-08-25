@@ -1,133 +1,48 @@
-# Chaos Contracts
+# Chaos v1 Contracts
 
-Contracts provide reusable executable behavior in Chaos.
+Contracts are the v1 representation for reusable executable operations.
 
-A contract separates an operation from the location where it is invoked.
+The current parser recognizes contract calls inside logic operations and conditional branches. A contract call is stored as an `AST_CONTRACT_CALL` node.
 
-## 1. Contract Model
+## Contract Call Syntax
 
-A contract consists conceptually of:
+A contract call is parenthesized:
+
+```chaos
+('contract-name')
+```
+
+Arguments may follow the contract name:
+
+```chaos
+('compare' x y)
+```
+
+The contract name may be a string or identifier. Arguments may be identifiers, strings, numbers, or `result`.
+
+## Conditional Use
+
+Contract calls can appear as operations attached to parsed conditional forms:
+
+```chaos
+if {x > 10}, ('large' x)
+else ('small' x)
+```
+
+The parser stores the condition and the contract call in the AST.
+
+## AST Shape
+
+A parsed contract call has this shape:
 
 ```text
-CONTRACT
-│
-├── NAME
-├── PARAMETERS
-├── BODY
-└── RESULT
+CONTRACT: contract-name
+  EXPRESSION: argument
+  RESULT: result
 ```
 
-Contracts can therefore be invoked from other executable constructs.
+## Runtime Boundary
 
-## 2. Contract Invocation
+Chaos v1 preserves contract calls structurally. The runtime does not resolve contract definitions or invoke contract bodies.
 
-A contract is executed through an execution construct.
-
-```text
-execute
-    contract
-```
-
-The runtime resolves the contract and executes its body.
-
-```mermaid
-flowchart LR
-    A["execute"] --> B["Resolve Contract"]
-    B --> C["Bind Arguments"]
-    C --> D["Execute Contract Body"]
-    D --> E["Produce Result"]
-    E --> F["Return to Caller"]
-```
-
-## 3. Parameters
-
-Contracts may accept values supplied by the caller.
-
-Conceptually:
-
-```text
-contract operation
-    parameter A
-    parameter B
-```
-
-At execution time:
-
-```text
-argument A → parameter A
-argument B → parameter B
-```
-
-Parameter binding occurs within the contract's execution environment.
-
-## 4. Contract State
-
-Contracts operate against the runtime environment while maintaining their own execution context.
-
-```text
-Caller
-  │
-  ▼
-Contract
-  │
-  ├── parameters
-  ├── operations
-  └── result
-  │
-  ▼
-Caller
-```
-
-State explicitly exposed to the contract can therefore be used during execution.
-
-## 5. Results
-
-A contract may produce a result.
-
-```text
-Contract
-   │
-   ▼
-Result
-   │
-   ▼
-Caller state
-```
-
-Results can subsequently be consumed by other runtime operations.
-
-## 6. Reusability
-
-The primary purpose of contracts is to prevent repeated executable logic.
-
-Instead of encoding the same operations repeatedly:
-
-```text
-operation
-operation
-operation
-```
-
-the behavior can be defined once:
-
-```text
-contract operation
-```
-
-and invoked wherever required.
-
-## 7. Contract Errors
-
-The runtime validates contract execution.
-
-Possible errors include:
-
-```text
-Unknown contract
-Invalid argument count
-Invalid argument type
-Invalid parameter binding
-Invalid result
-```
-
-An invalid invocation terminates the operation with a runtime error rather than executing partially.
+This keeps contracts in the core v1 vocabulary while leaving their execution model outside the current state and collection runtime.

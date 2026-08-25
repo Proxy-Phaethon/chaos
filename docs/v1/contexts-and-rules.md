@@ -1,143 +1,45 @@
-# Chaos Contexts and Rules
+# Chaos v1 Contexts and Rules
 
-Contexts provide a way to organize computation around a particular execution environment.
+Contexts and rules are v1 structures for describing the environment and constraints around logic.
 
-Rules define behavior that should occur when their associated conditions are satisfied.
+The parser recognizes a context paired with a rule and stores both in the AST.
 
-## 1. Context
+## Syntax
 
-A context represents a named computational environment.
+A context/rule pair appears inside logic:
 
-Conceptually:
+```chaos
+context {x + 1 = 2},
+rule ('x not equal 0');
+```
+
+The context expression may be a brace-delimited expression, string, identifier, number, or `result`.
+
+The rule expression is placed inside parentheses after `rule`.
+
+## AST Shape
+
+The parser stores the pair as:
 
 ```text
 CONTEXT
-│
-├── STATE
-├── RULE
-├── RULE
-├── ...
-└── EXECUTION
+  EXPRESSION: x + 1 = 2
+  RULE
+    EXPRESSION: x not equal 0
 ```
 
-A context can therefore group related state and behavior without requiring every operation to exist in the global execution environment.
+## Runtime Boundary
 
-## 2. Contextual Execution
+Chaos v1 preserves contexts and rules structurally. The runtime recognizes these nodes during logic execution and leaves the state store unchanged.
 
-The runtime maintains the active context while executing contextual logic.
+This lets v1 programs carry contextual information in their AST while the executable runtime remains focused on registers, states, and collection operations.
 
-```mermaid
-flowchart TD
-    A["Runtime"] --> B["Active Context"]
-    B --> C["Context State"]
-    B --> D["Rules"]
-    D --> E["Evaluate Rule"]
-    E -->|matched| F["Execute Rule"]
-    E -->|not matched| G["Evaluate Next Rule"]
-    F --> H["Runtime State Store"]
-```
+## Role In v1
 
-## 3. Rules
+Contexts and rules are part of the completed v1 core vocabulary:
 
-A rule associates a condition with executable behavior.
+* `context` describes the computational situation.
+* `rule` describes a condition associated with that situation.
+* The AST keeps the relationship between the two explicit.
 
-Conceptually:
-
-```text
-RULE
-│
-├── CONDITION
-│
-└── ACTION
-```
-
-For example:
-
-```text
-rule
-    condition → execute operation
-```
-
-When the rule is evaluated, its condition is checked against the current runtime state.
-
-## 4. Rule Evaluation
-
-Rules are evaluated using the same runtime state available to other execution constructs.
-
-```text
-Runtime State
-      │
-      ▼
-Rule Condition
-      │
- ┌────┴────┐
- ▼         ▼
-true      false
- │         │
- ▼         ▼
-execute   continue
-```
-
-A rule that does not match does not modify runtime state.
-
-## 5. Multiple Rules
-
-A context may contain multiple rules.
-
-```text
-context
-│
-├── rule A
-├── rule B
-├── rule C
-└── rule D
-```
-
-The runtime evaluates the rules according to their defined execution order.
-
-This provides a structured mechanism for expressing state-dependent behavior.
-
-## 6. Context and Transition
-
-Contexts can participate in transitions.
-
-```text
-Context A
-    │
-    │ transition
-    ▼
-Context B
-```
-
-This allows a program to model changing computational situations.
-
-## 7. Contextual State
-
-Context-specific state remains part of the runtime state system.
-
-The context determines which behavior is active, while the Runtime State Store maintains the actual values.
-
-```text
-              Runtime
-                 │
-          ┌──────┴──────┐
-          ▼             ▼
-       Context       State Store
-          │             │
-          ▼             ▼
-        Rules         Values
-```
-
-## 8. Rules and Logic
-
-Rules use the same expression and conditional mechanisms as ordinary logic.
-
-This means a rule can evaluate:
-
-* Numeric comparisons
-* State values
-* Expressions
-* Boolean conditions
-* Context-dependent state
-
-The distinction is primarily organizational: logic describes computation, while rules associate computation with contextual conditions.
+They do not perform condition evaluation or action dispatch in the current runtime.

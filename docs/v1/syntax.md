@@ -1,208 +1,88 @@
-# Chaos Syntax
+# Chaos v1 Syntax
 
-This document describes the syntax used by Chaos v1.
+This document describes the syntax accepted by the Chaos v1 lexer and parser.
 
-## 1. Program Structure
+## Program Structure
 
-Chaos programs are composed of named computational structures.
-
-The principal constructs are:
+A Chaos program is a sequence of top-level structures:
 
 ```text
 register
-state
 logic
-constant
-transition
-context
-rule
 execute
-contract
-list
-queue
-stack
-branch
 ```
 
-A program may combine these constructs to describe state, computation, control flow, and data.
+The parser accepts these structures in source order and stores them under a `PROGRAM` AST node.
 
-## 2. Basic Values
+## Values
 
-Chaos supports several fundamental value forms.
+Chaos v1 recognizes four value forms.
 
-### Numbers
+Numbers:
 
 ```chaos
-state: integer = 42,
-state: decimal = 3.14159,
+42
+3.14159
 ```
 
-### Strings
-
-Strings are enclosed in single quotes:
+Strings:
 
 ```chaos
-state: name = 'Zia',
-state: message = 'Hello, Chaos',
+'Chaos'
 ```
 
-### Expressions
-
-Expressions are enclosed in `{}`:
+Identifiers:
 
 ```chaos
-state: result = {x + 1},
+current-state
 ```
 
-The braces distinguish expressions from ordinary literal values.
+Expressions:
 
-## 3. States
+```chaos
+{x + 1 = 2}
+```
+
+Expressions are stored as expression text. The v1 runtime preserves them as state values or AST conditions.
+
+## Registers
+
+A register contains state declarations and ends with a semicolon.
+
+```chaos
+register ('main'):
+
+    state: integer = 42,
+    state: name = 'Chaos';
+```
+
+The register name is optional:
+
+```chaos
+register:
+
+    state: x = 10;
+```
+
+## States
 
 A state associates a name with a value:
 
 ```chaos
-state: x = 42,
-state: name = 'Chaos',
+state: x = 42
 ```
 
-A state may also declare a data structure:
+A state may also declare a collection type:
 
 ```chaos
-state: fruits, list = {'apple', 'banana'},
+state: fruits, list = {'apple', 'banana'}
 ```
 
-The general form is:
+Inside a register, state declarations are separated by commas. The final state is followed by the register's semicolon.
 
-```text
-state: <name> [ , <type> ] = <value>,
-```
+## Collections
 
-## 4. Registers
-
-Registers organize states into named collections of runtime state.
-
-```chaos
-register main
-    state: x = 10,
-    state: name = 'Zia',
-```
-
-A register therefore acts as a named state environment.
-
-## 5. Lists
-
-Lists represent ordered collections.
-
-```chaos
-state: fruits, list = {
-    'apple',
-    'banana',
-    'blueberry'
-},
-```
-
-Operations may be expressed separately:
-
-```chaos
-list fruits
-    (push 'strawberry')
-    (push 'raspberry')
-    (pop),
-```
-
-The comma terminates the operation group.
-
-## 6. Queues
-
-Queues use FIFO semantics.
-
-```chaos
-state: waiting, queue = {
-    'first',
-    'second',
-    'third'
-},
-```
-
-Operations:
-
-```chaos
-queue waiting
-    (push 'fourth')
-    (pop),
-```
-
-The first element inserted is the first element removed.
-
-```text
-push → BACK
-
-[first] [second] [third] [fourth]
-   ↑
-  pop
-```
-
-## 7. Stacks
-
-Stacks use LIFO semantics.
-
-```chaos
-state: history, stack = {
-    'older',
-    'old'
-},
-```
-
-Operations:
-
-```chaos
-stack history
-    (push 'new')
-    (pop),
-```
-
-The most recently inserted element is removed first.
-
-```text
-        push
-         ↓
-      [new]
-      [old]
-    [older]
-         ↑
-        pop
-```
-
-## 8. Branches
-
-Branches represent hierarchical data.
-
-```chaos
-state: tree, branch = {
-    '50',
-    '25',
-    '75',
-    '10',
-    '30'
-},
-```
-
-The branch type is distinct from lists, queues, and stacks and is intended for tree-oriented operations.
-
-## 9. Data-Structure Operations
-
-Data-structure operations explicitly identify both the structure type and the state being operated on.
-
-```chaos
-list fruits
-    (push 'apple')
-    (push 'banana')
-    (pop),
-```
-
-The syntax prevents ambiguity between similarly named states.
-
-Supported structures are:
+Chaos v1 supports four collection declarations:
 
 ```text
 list
@@ -211,127 +91,134 @@ stack
 branch
 ```
 
-Supported primitive operations are:
+Collection states use brace-delimited expression syntax for their initial contents:
+
+```chaos
+state: fruits, list = {'apple', 'banana', 'blueberry'}
+state: waiting, queue = {'first', 'second', 'third'}
+state: history, stack = {'older', 'old'}
+state: tree, branch = {'50', '25', '75'}
+```
+
+The runtime initializes collection contents by splitting the expression text on commas and trimming surrounding single quotes.
+
+## Collection Operations
+
+Collection operation groups appear inside `logic`.
+
+```chaos
+list fruits
+    (push 'strawberry')
+    (push 'raspberry'),
+```
+
+Each operation group begins with the collection type, then the target state name, then one or more parenthesized operations. The group ends with a comma.
+
+Supported operations:
 
 ```text
 push
 pop
 ```
 
-## 10. Logic
-
-Logic constructs describe conditional computation.
-
-A logical construct may contain expressions and conditional branches:
+Examples:
 
 ```chaos
-logic
-    if {x > 10}
-        execute something,
+queue waiting
+    (push 'fourth')
+    (pop),
+
+stack history
+    (push 'newest')
+    (pop),
 ```
 
-The exact operations performed by the logic are determined by the constructs contained within it.
+## Logic
 
-## 11. Constants
-
-Constants provide named immutable values:
+A logic structure starts with an initial condition and a semicolon:
 
 ```chaos
-constant: maximum = 100,
+logic {x > 0};
 ```
 
-Constants can be referenced by other language constructs.
+After that, the parser attaches following logic statements until it reaches `execute` or end of file.
 
-## 12. Transitions
+Supported logic children:
 
-Transitions represent movement between computational states or contexts.
+```text
+constant
+list operation
+queue operation
+stack operation
+branch operation
+transition
+context/rule
+if / else if / else
+```
+
+## Constants
+
+A constant stores the tokens between `constant:` and `;` as a constant expression.
 
 ```chaos
-transition: next_state,
+constant: x < y;
 ```
 
-A transition can be associated with conditional or contextual execution.
+The v1 runtime prints constants during logic execution.
 
-## 13. Contexts
+## Conditional Forms
 
-A context groups rules and state-dependent behavior.
+Conditional forms are parsed into the AST.
 
-Conceptually:
-
-```text
-context
-│
-├── state
-├── rule
-├── rule
-└── execution
+```chaos
+if {x > 10}, ('contract-name' result)
+else if {x > 5}, terminate
+else ('fallback')
 ```
 
-Contexts allow a program to organize behavior around a particular computational situation.
+The operation after the comma is either a parenthesized contract call or `terminate`.
 
-## 14. Rules
+## Contract Calls
 
-Rules associate conditions with actions.
+Contract calls are parsed as parenthesized operations:
 
-Conceptually:
-
-```text
-RULE
-├── condition
-└── execution
+```chaos
+('compare' x y)
 ```
 
-This allows contextual behavior to be expressed without manually encoding every branch as a separate sequence.
+The first value is the contract name. Additional identifiers, strings, numbers, and `result` tokens are stored as arguments.
 
-## 15. Contracts
+## Transitions
 
-Contracts represent reusable executable operations.
+Transitions are parsed inside logic:
 
-A contract can be invoked through an execute construct:
+```chaos
+transition ('none');
+```
 
-```text
+The transition reference may be a string or identifier.
+
+## Contexts and Rules
+
+A context pairs an expression with one rule expression:
+
+```chaos
+context {x + 1 = 2},
+rule ('x not equal 0');
+```
+
+The parser stores the context expression and the nested rule expression in the AST.
+
+## Execute
+
+`execute` is a top-level structure:
+
+```chaos
 execute
-    contract
 ```
 
-Contracts provide a mechanism for separating reusable behavior from the state and context in which that behavior is invoked.
+The v1 runtime reports `EXECUTE` when this node is reached.
 
-## 16. Syntax Pipeline
+## Complete Example
 
-The relationship between source syntax and execution is:
-
-```mermaid
-flowchart LR
-    A["Source Construct"] --> B["Token"]
-    B --> C["AST Node"]
-    C --> D["Runtime Operation"]
-    D --> E["State Mutation"]
-```
-
-For example:
-
-```chaos
-list fruits
-    (push 'apple'),
-```
-
-becomes conceptually:
-
-```text
-SOURCE
-  │
-  ▼
-DATA STRUCTURE OPERATION
-  │
-  ├── type: list
-  ├── state: fruits
-  └── operation: push
-          │
-          ▼
-      RUNTIME PUSH
-          │
-          ▼
- fruits = [apple]
-```
-
-Chaos therefore maintains a direct relationship between its source-level computational concepts and their runtime representations.
+See `examples/all_v1.chaos` for a source file that exercises the v1 vocabulary and runtime behavior together.

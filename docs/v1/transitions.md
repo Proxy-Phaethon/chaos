@@ -1,116 +1,39 @@
-# Chaos Transitions
+# Chaos v1 Transitions
 
-Transitions control movement between computational states or contexts.
+Transitions represent movement from one computational state or context reference to another.
 
-They provide a mechanism for changing which part of a Chaos program is active.
+In v1, transitions are parsed and represented in the AST.
 
-## 1. Transition Model
+## Syntax
 
-A transition can be represented as:
+A transition appears inside logic:
+
+```chaos
+transition ('none');
+```
+
+The transition reference may be a string or identifier:
+
+```chaos
+transition (next-state);
+```
+
+## AST Shape
+
+The parser stores a transition as:
 
 ```text
-SOURCE
-  │
-  │ transition
-  ▼
-TARGET
+TRANSITION: none
 ```
 
-The source may be a state or contextual execution environment, depending on the program structure.
+## Runtime Boundary
 
-## 2. Transition Execution
+The v1 runtime recognizes transition nodes during logic execution and preserves them without changing runtime state.
 
-A transition is evaluated by the runtime and applied to the current execution state.
+This makes transitions part of the completed v1 language vocabulary while keeping active transition machinery outside the current runtime mutation surface.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Initial
-    Initial --> Active: transition
-    Active --> Complete: transition
-    Complete --> [*]
-```
+## Relationship To State
 
-The runtime validates that the requested target exists before applying the transition.
+The `RuntimeStateStore` remains the place where live state is held.
 
-## 3. Conditional Transitions
-
-Transitions can be combined with logic.
-
-```text
-condition
-    │
-    ├── true  → transition A
-    │
-    └── false → transition B
-```
-
-This allows state-machine-style behavior.
-
-```mermaid
-flowchart TD
-    A["Current State"] --> B["Evaluate Condition"]
-    B -->|true| C["Transition A"]
-    B -->|false| D["Transition B"]
-    C --> E["New State"]
-    D --> F["Alternative State"]
-```
-
-## 4. Transition Validation
-
-Before a transition occurs, the runtime validates its target.
-
-```text
-Requested Target
-       │
-       ▼
-Target Exists?
-   │         │
-  yes        no
-   │         │
-   ▼         ▼
-transition  runtime error
-```
-
-Invalid transitions do not silently create new states.
-
-## 5. Transitions and Context
-
-Transitions can be used to move between contexts:
-
-```text
-┌──────────────┐
-│ Context A    │
-└──────┬───────┘
-       │
-       │ transition
-       ▼
-┌──────────────┐
-│ Context B    │
-└──────────────┘
-```
-
-This makes contexts suitable for modelling systems whose behavior changes over time.
-
-## 6. Transition Semantics
-
-A transition changes execution state. It does not duplicate or recreate the entire Runtime State Store.
-
-```text
-Before:
-
-Context A
-State Store
-├── x
-├── y
-└── z
-
-After transition:
-
-Context B
-State Store
-├── x
-├── y
-└── z
-```
-
-The active computational context changes while persistent runtime state remains available according to the language's state rules.
+Transitions do not duplicate state in v1. They are structural markers in the AST that can be inspected and extended by later runtime behavior.

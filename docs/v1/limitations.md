@@ -1,96 +1,70 @@
-# Chaos v1 Limitations
+# Chaos v1 Scope Boundaries
 
-Chaos v1 establishes the core language and runtime model. It deliberately does not attempt to provide every capability that may eventually become part of the language.
+Chaos v1 focuses on the core language and runtime.
 
-## 1. Mathematical Functionality
+It provides the working pipeline from `.chaos` source to tokens, AST execution, and final `RuntimeStateStore`.
 
-Advanced mathematical functionality is outside the scope of v1.
+## In Scope For v1
 
-Basic expression evaluation is part of the core language, but specialized mathematical operations and a broader mathematical computation system belong to later language development.
+Chaos v1 includes:
 
-The distinction is:
+* Lexing
+* Parsing
+* AST construction and inspection
+* Runtime dispatch
+* Register execution
+* State storage
+* Scalar state values
+* List, queue, stack, and branch state values
+* Collection initialization
+* Collection `push`
+* Collection `pop`
+* Collection type validation
+* Logic as the container for active computation
+* Parsed constants
+* Parsed conditionals
+* Parsed contracts
+* Parsed transitions
+* Parsed contexts and rules
+* Top-level `execute`
 
-```text
-V1
-│
-├── expressions
-├── state evaluation
-└── basic computation
+## Runtime Boundary
 
-V2+
-│
-└── mathematical functionality
-```
+The v1 runtime mutates state through register execution and collection operations.
 
-## 2. Tooling
+These constructs are parsed into the AST but do not perform state-changing runtime behavior in v1:
 
-Chaos v1 is focused on the language implementation itself.
+* Expression evaluation
+* Conditional branch selection
+* Contract resolution and invocation
+* Transition application
+* Context activation
+* Rule evaluation
+* Result propagation
+* Termination control flow
 
-A full development toolchain is not required for the v1 language/runtime:
+They are still part of the v1 language shape because the lexer, parser, and AST represent them.
 
-```text
-IDE
-Debugger
-Package manager
-Language server
-Build tooling
-```
+## Mathematical Functionality
 
-These belong to the eventual product ecosystem rather than the core v1 implementation.
+Advanced mathematical functionality is outside v1.
 
-## 3. Branch Extensions
+Chaos v2 is reserved for mathematical functionality rather than CLI or tooling work.
 
-The branch data structure provides hierarchical storage and tree-oriented semantics.
+## Tooling
 
-Advanced tree algorithms are outside the core requirements of the v1 runtime.
+CLI polish, package management, editor integrations, language-server support, debuggers, and external ecosystem tooling are outside v1.
 
-Future implementations may extend branch functionality with additional traversal, search, balancing, or specialized tree operations.
+They belong to the eventual product/ecosystem stage.
 
-## 4. Standard Library
+## Branch Behavior
 
-Chaos v1 provides core language functionality rather than a large standard library.
+`branch` is a distinct v1 runtime type and supports initialization, push, pop, type validation, and printing.
 
-The language runtime establishes the mechanisms through which additional functionality can eventually be implemented.
+In v1, branch storage uses the same collection backing store as lists, queues, and stacks. Advanced tree algorithms, traversal, balancing, and search are outside the v1 core.
 
-## 5. External Systems
+## External Systems
 
-Chaos v1 does not depend on external services or network infrastructure.
+Chaos v1 runs locally through its C runtime.
 
-The language executes locally using its C runtime.
-
-```text
-.chaos
-   │
-   ▼
-Chaos Runtime
-   │
-   ▼
-Local State
-```
-
-This keeps the core language self-contained.
-
-## 6. Stability Boundary
-
-The v1 boundary is intentionally focused:
-
-```text
-                 CHAOS V1
-                    │
-        ┌───────────┴───────────┐
-        │                       │
-     Language                Runtime
-        │                       │
-      Lexer                    State
-      Parser                   Logic
-      AST                      Rules
-      Syntax                   Context
-                               Contracts
-                               Transitions
-                               Collections
-                               Expressions
-```
-
-Features outside this boundary should not be added merely for the sake of increasing the feature count.
-
-Chaos v1 is intended to provide a complete foundation on which later language functionality can be built.
+It does not depend on external services, network infrastructure, hosted package registries, or third-party execution systems.

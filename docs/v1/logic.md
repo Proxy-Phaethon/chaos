@@ -1,178 +1,100 @@
-# Chaos Logic
+# Chaos v1 Logic
 
-Logic is the primary mechanism Chaos uses to make decisions during execution.
+`logic` is the v1 structure that groups active computation.
 
-A logic construct evaluates conditions and determines which operations should execute.
+The parser represents logic as an `AST_LOGIC` node with an initial expression followed by logic children.
 
-## 1. Logic Structure
+## Form
 
-A logic construct can be understood as:
-
-```text
-LOGIC
-│
-├── CONDITION
-│
-├── TRUE PATH
-│
-├── ALTERNATIVE CONDITIONS
-│
-└── FALLBACK PATH
-```
-
-Conceptually:
-
-```mermaid
-flowchart TD
-    A["LOGIC"] --> B["Evaluate Condition"]
-    B -->|true| C["Execute True Path"]
-    B -->|false| D{"Alternative?"}
-    D -->|yes| E["Evaluate Next Condition"]
-    E -->|true| C
-    E -->|false| D
-    D -->|no| F["Execute Else Path"]
-```
-
-## 2. Conditions
-
-Conditions are expressions whose result determines execution.
-
-For example:
+A logic structure starts with an expression and a semicolon:
 
 ```chaos
-if {health > 0}
-    execute continue,
+logic {x > 0};
 ```
 
-The expression is evaluated against the current runtime state.
-
-If the result is true, the associated operation executes.
-
-## 3. If
-
-The `if` construct defines the primary condition:
+After this header, the parser attaches following logic statements until it reaches top-level `execute` or end of file.
 
 ```chaos
-if {x > 10}
-    execute operation,
+logic {x > 0};
+
+    constant: x < y;
+
+    list fruits
+        (push 'strawberry'),
+
+execute
 ```
 
-The condition is evaluated when the logic construct executes.
+## Logic Children
 
-## 4. Else If
-
-Multiple conditions can be evaluated sequentially:
+Chaos v1 parses these structures inside logic:
 
 ```text
-if condition A
-    operation A
-
-else if condition B
-    operation B
-```
-
-Only the first matching branch executes.
-
-```mermaid
-flowchart TD
-    A["Condition A"] -->|true| B["Execute A"]
-    A -->|false| C["Condition B"]
-    C -->|true| D["Execute B"]
-    C -->|false| E["Continue"]
-```
-
-## 5. Else
-
-An `else` branch provides a fallback when no preceding condition succeeds.
-
-```text
-if A
-    execute A
-else if B
-    execute B
+constant
+list operation
+queue operation
+stack operation
+branch operation
+transition
+context/rule
+if
+else if
 else
-    execute C
+contract call
+result
+terminate
 ```
 
-Exactly one branch is selected.
+## Runtime Behavior
 
-## 6. Runtime Evaluation
+The v1 runtime executes the stable runtime operations inside logic:
 
-Conditions are evaluated using the current Runtime State Store.
+* Constants are printed.
+* Data-structure operation groups mutate runtime state.
+* Parsed conditionals, transitions, contexts/rules, contract calls, results, and termination markers are preserved in the AST without additional state mutation.
+
+This means logic is both the container for executable v1 collection behavior and the AST home for the rest of the core computational vocabulary.
+
+## Conditions
+
+Logic conditions are parsed as expression nodes:
+
+```chaos
+logic {health > 0};
+```
+
+Conditional branches are also parsed:
+
+```chaos
+if {health > 50}, ('healthy')
+else if {health > 0}, ('injured')
+else terminate
+```
+
+In v1, these conditions are represented structurally. Expression evaluation and branch selection belong to the mathematical/runtime expansion after the v1 core.
+
+## Constants
+
+Constants are local logic entries:
+
+```chaos
+constant: x < y;
+```
+
+The parser stores the expression text. The runtime reports it during logic execution:
 
 ```text
-state:
-    health = 75
-
-        │
-        ▼
-
-condition:
-    {health > 50}
-
-        │
-        ▼
-
-      true
-
-        │
-        ▼
-
-execute operation
+CONSTANT: x < y
 ```
 
-Because evaluation occurs at runtime, changes to state can affect subsequent decisions.
+## Collection Operations
 
-## 7. Nested Logic
+Collection operations are the main mutating operations executed from logic in v1:
 
-Logic constructs may contain additional conditional logic.
-
-```text
-LOGIC
-│
-└── IF
-    │
-    └── LOGIC
-        ├── IF
-        └── ELSE
+```chaos
+queue waiting
+    (push 'fourth')
+    (pop),
 ```
 
-This allows complex decision structures without requiring the runtime to encode each possible branch explicitly.
-
-## 8. Invalid Conditions
-
-A condition must produce a value that can be interpreted as a logical result.
-
-Invalid conditions produce runtime errors rather than being silently coerced.
-
-Examples include:
-
-```text
-Invalid expression
-Undefined state
-Incompatible operand types
-Invalid comparison
-```
-
-## 9. Logic and State
-
-Logic does not maintain a separate copy of program state.
-
-Instead:
-
-```text
-             Runtime State
-                   │
-                   ▼
-              Evaluate
-               condition
-                   │
-          ┌────────┴────────┐
-          ▼                 ▼
-        true              false
-          │                 │
-          ▼                 ▼
-      operation        next branch
-```
-
-This ensures that decisions always operate on the current runtime state.
+The runtime resolves `waiting`, checks that it is a queue, pushes `fourth`, pops the oldest item, and updates the `RuntimeStateStore`.

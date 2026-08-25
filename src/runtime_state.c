@@ -304,16 +304,8 @@ void runtime_state_store_free(
 /*
  * Push a value onto a collection.
  *
- * For now, all collection types use the same
- * underlying storage mechanism.
- *
- * Their actual semantics will be implemented
- * by the runtime:
- *
- *     list
- *     queue
- *     stack
- *     branch
+ * All v1 collection types append through the
+ * same expandable storage mechanism.
  */
 int runtime_state_push(
     RuntimeState *state,
@@ -369,8 +361,7 @@ int runtime_state_push(
  * Branch:
  *     currently removes oldest item.
  *
- * List and branch semantics will be refined
- * when their runtime implementations are built.
+ * List and branch use oldest-item removal in v1.
  */
 char *runtime_state_pop(
     RuntimeState *state)

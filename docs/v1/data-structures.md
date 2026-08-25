@@ -1,217 +1,119 @@
-# Chaos Data Structures
+# Chaos v1 Data Structures
 
-Chaos provides four fundamental collection types:
+Chaos v1 supports four collection types:
 
 ```text
-LIST
-QUEUE
-STACK
-BRANCH
+list
+queue
+stack
+branch
 ```
 
-Each collection has explicit runtime semantics.
-
-## 1. Collection Overview
-
-```mermaid
-flowchart TD
-    A["Chaos Collections"] --> B["List"]
-    A --> C["Queue"]
-    A --> D["Stack"]
-    A --> E["Branch"]
-
-    B --> B1["Ordered sequence"]
-    C --> C1["FIFO"]
-    D --> D1["LIFO"]
-    E --> E1["Hierarchical structure"]
-```
-
-## 2. Lists
-
-A list is an ordered collection.
+Collection states are declared inside a register:
 
 ```chaos
-state: fruits, list = {
-    'apple',
-    'banana',
-    'blueberry'
-},
+register ('collections'):
+
+    state: fruits, list = {'apple', 'banana'},
+    state: waiting, queue = {'first', 'second'},
+    state: history, stack = {'older', 'old'},
+    state: tree, branch = {'50', '25', '75'};
 ```
 
-Its elements maintain their insertion order.
+The runtime stores collection items as strings in an expandable array.
 
-```text
-[index]
-   0        1         2
-┌───────┬────────┬───────────┐
-│ apple │ banana │ blueberry │
-└───────┴────────┴───────────┘
+## Initialization
+
+Collection initializers are written as brace-delimited expressions:
+
+```chaos
+state: fruits, list = {'apple', 'banana', 'blueberry'}
 ```
 
-### Push
+During runtime registration, the initializer text is split on commas. Surrounding whitespace and single quotes are removed before each item is pushed into the collection.
 
-`push` appends an element:
+## Operations
 
-```text
-[apple, banana]
-       +
-    push orange
-       ↓
-[apple, banana, orange]
+Collection operations appear inside `logic`:
+
+```chaos
+logic {x > 0};
+
+    list fruits
+        (push 'strawberry')
+        (pop),
+
+execute
 ```
 
-### Pop
+Each operation group identifies both the collection type and the target state name. The runtime checks that the target state's actual type matches the operation type before executing.
 
-`pop` removes an element according to list semantics.
+## Push
 
-## 3. Queues
-
-Queues implement First-In, First-Out behavior.
-
-```text
-             insertion
-                ↓
-        ┌───────┬───────┬───────┐
-        │   A   │   B   │   C   │
-        └───────┴───────┴───────┘
-            ↑
-          removal
-```
-
-The first element inserted is the first element removed.
-
-Example:
-
-```text
-push A
-push B
-push C
-pop
-```
-
-Result:
-
-```text
-A
-```
-
-Remaining queue:
-
-```text
-[B, C]
-```
-
-## 4. Stacks
-
-Stacks implement Last-In, First-Out behavior.
-
-```text
-        ┌───────┐
-        │   C   │ ← top
-        ├───────┤
-        │   B   │
-        ├───────┤
-        │   A   │
-        └───────┘
-```
-
-Example:
-
-```text
-push A
-push B
-push C
-pop
-```
-
-Result:
-
-```text
-C
-```
-
-Remaining stack:
-
-```text
-[A, B]
-```
-
-## 5. Branches
-
-Branches represent hierarchical data rather than a linear sequence.
-
-A branch can be represented conceptually as:
-
-```text
-              50
-             /  \
-           25    75
-          /  \
-        10    30
-```
-
-Branch operations therefore operate on relationships between nodes rather than simply on sequential positions.
-
-## 6. Data-Structure Operations
-
-Chaos identifies the collection being operated on explicitly:
+`push` appends an item to the collection's storage:
 
 ```chaos
 list fruits
-    (push 'apple')
-    (push 'banana'),
+    (push 'orange'),
 ```
 
-This produces an operation structure equivalent to:
+After the operation, `orange` is stored after the existing items.
+
+## Pop
+
+`pop` removes and prints one item.
+
+Queue pop uses FIFO behavior:
 
 ```text
-DATA STRUCTURE OPERATION
-│
-├── type: list
-├── state: fruits
-└── operations
-    ├── push apple
-    └── push banana
+[first, second, third] -> pop -> first
 ```
 
-## 7. Empty Collections
-
-Collection operations are validated before execution.
-
-Attempting to remove an element from an empty collection produces a runtime error.
+Stack pop uses LIFO behavior:
 
 ```text
-empty queue
-    │
-    ▼
-pop
-    │
-    ▼
-runtime error
+[older, old, newest] -> pop -> newest
 ```
 
-This prevents undefined collection behavior.
-
-## 8. Type Safety
-
-A collection operation must target the correct collection type.
-
-For example:
+List pop removes the oldest stored item in v1:
 
 ```text
-queue waiting
+[apple, banana] -> pop -> apple
 ```
 
-cannot be used to perform an operation requiring a stack.
-
-The runtime validates:
+Branch pop also removes the oldest stored item in v1:
 
 ```text
-declared type
-      ↓
-runtime type
-      ↓
-operation compatibility
+[50, 25, 75] -> pop -> 50
 ```
 
-Only compatible operations are executed.
+## Branch
+
+`branch` is a distinct v1 runtime type. It represents tree-oriented data at the language level while using the same collection storage as the other v1 data structures.
+
+Branch values can be initialized, pushed, popped, printed, and type-checked:
+
+```chaos
+branch tree
+    (push '60')
+    (push '5'),
+```
+
+## Type Safety
+
+The runtime rejects operations that target the wrong collection type.
+
+For example, this is invalid when `waiting` was declared as a queue:
+
+```chaos
+stack waiting
+    (pop),
+```
+
+The runtime reports a type mismatch instead of mutating the state.
+
+## Empty Collections
+
+Popping an empty collection is a runtime error.
+
+This applies to all v1 collection types.

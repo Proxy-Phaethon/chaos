@@ -1,200 +1,181 @@
-# Chaos Examples
+# Chaos v1 Examples
 
-This document provides representative Chaos v1 programs.
+This document provides representative Chaos v1 programs using syntax accepted by the current parser.
 
-## 1. Basic State
+## Basic State
 
 ```chaos
-register main
+register ('main'):
+
     state: x = 42,
-    state: name = 'Zia',
+    state: name = 'Zia';
+
+execute
 ```
 
-The runtime creates two states:
+The runtime creates two states and prints them in the final state store.
 
-```text
-main
-├── x = 42
-└── name = 'Zia'
-```
-
-## 2. Expressions
+## Expressions As State
 
 ```chaos
-register main
+register ('main'):
+
     state: x = 10,
-    state: result = {x + 5},
+    state: expression = {x + 5};
+
+execute
 ```
 
-The runtime resolves `x` and evaluates the expression.
-
-Result:
+The expression is preserved as state text:
 
 ```text
-x      = 10
-result = 15
+expression [string] = x + 5
 ```
 
-## 3. List
+## List
 
 ```chaos
-register main
-    state: fruits, list = {
-        'apple',
-        'banana'
-    },
+register ('main'):
+
+    state: fruits, list = {'apple', 'banana'};
+
+logic {x > 0};
 
     list fruits
         (push 'blueberry')
         (push 'strawberry'),
+
+execute
 ```
 
-Result:
+Final state:
 
 ```text
-fruits = [
-    apple,
-    banana,
-    blueberry,
-    strawberry
-]
+fruits [list] = {apple, banana, blueberry, strawberry}
 ```
 
-## 4. Queue
+## Queue
 
 ```chaos
-register main
-    state: waiting, queue = {
-        'first',
-        'second',
-        'third'
-    },
+register ('main'):
+
+    state: waiting, queue = {'first', 'second', 'third'};
+
+logic {x > 0};
 
     queue waiting
         (push 'fourth')
         (pop),
+
+execute
 ```
 
 The popped value is:
 
 ```text
-first
+POP waiting: first
 ```
 
-The resulting queue is:
+Final queue:
 
 ```text
-second
-third
-fourth
+waiting [queue] = {second, third, fourth}
 ```
 
-## 5. Stack
+## Stack
 
 ```chaos
-register main
-    state: history, stack = {
-        'older',
-        'old'
-    },
+register ('main'):
+
+    state: history, stack = {'older', 'old'};
+
+logic {x > 0};
 
     stack history
         (push 'new')
         (pop),
+
+execute
 ```
 
 The popped value is:
 
 ```text
-new
+POP history: new
 ```
 
-## 6. Branch
+Final stack:
+
+```text
+history [stack] = {older, old}
+```
+
+## Branch
 
 ```chaos
-register main
-    state: tree, branch = {
-        '50',
-        '25',
-        '75',
-        '10',
-        '30'
-    },
+register ('main'):
+
+    state: tree, branch = {'50', '25', '75'};
+
+logic {x > 0};
+
+    branch tree
+        (push '10')
+        (push '30'),
+
+execute
 ```
 
-The runtime represents the values as a branch structure.
-
-Conceptually:
+Final branch state:
 
 ```text
-        50
-       /  \
-     25    75
-    /  \
-  10    30
+tree [branch] = {50, 25, 75, 10, 30}
 ```
 
-## 7. Conditional Execution
-
-A logic construct can use runtime state to determine execution:
+## Constants
 
 ```chaos
-register main
-    state: health = 75,
+register ('main'):
 
-    logic
-        if {health > 50}
-            execute healthy,
+    state: x = 42;
+
+logic {x > 0};
+
+    constant: x < y;
+
+execute
 ```
 
-The condition evaluates against the current value of `health`.
-
-## 8. Contextual Behavior
-
-A context groups state-dependent behavior:
+Runtime output includes:
 
 ```text
-context
-│
-├── rule
-│   └── condition
-│       └── execute
-│
-└── rule
-    └── condition
-        └── execute
+CONSTANT: x < y
 ```
 
-The runtime evaluates the rules against the active state.
+## Context And Rule
 
-## 9. Complete v1 Demonstration
+```chaos
+register ('main'):
 
-The repository includes `all_v1.chaos`, which demonstrates the v1 vocabulary and runtime functionality in a single program.
+    state: x = 1;
 
-Its purpose is not to represent an idiomatic Chaos application, but to provide a feature-level integration test for the language.
+logic {x > 0};
 
-The progression is:
+    context {x + 1 = 2},
+    rule ('x not equal 0');
 
-```text
-Declarations
-     │
-     ▼
-Data Structures
-     │
-     ▼
-Operations
-     │
-     ▼
-Logic
-     │
-     ▼
-Contexts / Rules
-     │
-     ▼
-Transitions
-     │
-     ▼
-Execution
+execute
 ```
 
-This provides a compact demonstration that the language constructs can coexist inside the same runtime.
+The parser stores the context and nested rule in the AST.
+
+## Complete v1 Demonstration
+
+The repository includes `examples/all_v1.chaos`, which demonstrates the v1 vocabulary and runtime functionality in one program.
+
+Run it with:
+
+```sh
+make
+./chaos examples/all_v1.chaos
+```

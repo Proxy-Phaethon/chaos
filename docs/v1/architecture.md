@@ -1,286 +1,178 @@
-# Chaos Architecture
+# Chaos v1 Architecture
 
-Chaos is implemented as a compiled language pipeline in C. A Chaos program moves through several distinct stages before execution:
+Chaos v1 is implemented as a direct language pipeline in C.
 
 ```text
-                    ┌─────────────────┐
-                    │  .chaos Source  │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │      Lexer      │
-                    └────────┬────────┘
-                             │
-                        Token Stream
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │     Parser      │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │       AST       │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │     Runtime     │
-                    └────────┬────────┘
-                             │
-                             ▼
-                  ┌──────────────────────┐
-                  │ Runtime State Store  │
-                  └──────────────────────┘
+.chaos source
+  -> lexer
+  -> tokens
+  -> parser
+  -> AST
+  -> runtime
+  -> RuntimeStateStore
 ```
 
-## 1. Source
+## Source
 
-Chaos programs use the `.chaos` file extension.
+Chaos source files use the `.chaos` extension.
 
-A program consists of declarations and executable constructs such as registers, states, logic, contexts, rules, transitions, contracts, and data-structure operations.
+The v1 source model is built from named computational structures:
 
-A simple program may look like:
-
-```chaos
-register main
-    state: x = 10,
-    state: name = 'Zia',
+```text
+register
+state
+logic
+constant
+list
+queue
+stack
+branch
+transition
+context
+rule
+execute
 ```
 
-The source is intentionally structured around named computational concepts rather than traditional statement-oriented syntax.
+There is no `block` construct in Chaos v1.
 
-## 2. Lexer
+## Lexer
 
-The lexer converts raw source text into a sequence of tokens.
+The lexer converts source text into tokens.
 
-The lexer recognizes:
+It recognizes:
 
 * Keywords
 * Identifiers
 * Numbers
-* Strings
-* Expressions
-* Operators
-* Punctuation
-* Data-structure declarations
-* Execution constructs
+* Single-quoted strings
+* Brace-delimited expressions
+* Operator symbols
+* Parentheses
+* Colons
+* Commas
+* Semicolons
+* Equals signs
 
-Expressions are represented using `{}`:
-
-```chaos
-state: result = {x + 10},
-```
-
-Strings use single quotes:
-
-```chaos
-state: name = 'Zia',
-```
-
-Expressions are tokenized as complete expression regions, with nested braces tracked by the lexer.
-
-For example:
+Expressions are tokenized as complete expression regions. Nested braces are tracked while lexing:
 
 ```chaos
 {x + {y * 2}}
 ```
 
-is treated as a single expression token.
+## Parser
 
-## 3. Parser
+The parser consumes the token stream and builds an AST.
 
-The parser consumes the token stream and constructs an Abstract Syntax Tree.
-
-The parser is responsible for understanding the grammatical structure of Chaos programs.
-
-Conceptually:
+At the top level, the parser accepts:
 
 ```text
-Tokens
-  │
-  ├── REGISTER
-  │     ├── STATE
-  │     ├── STATE
-  │     └── ...
-  │
-  ├── LOGIC
-  │     ├── RULE
-  │     └── EXECUTE
-  │
-  └── TRANSITION
+REGISTER
+LOGIC
+EXECUTE
 ```
 
-The resulting AST preserves the structure required by the runtime rather than simply reproducing the source text.
+Within those structures, the parser recognizes state declarations, collection declarations, constants, collection operation groups, conditional forms, transitions, contexts, rules, contract calls, results, and termination markers.
 
-## 4. Abstract Syntax Tree
+The AST preserves the source-level computational structure so the runtime can dispatch by node type.
 
-The AST provides an explicit representation of Chaos constructs.
+## AST
 
-Major node categories include:
+The AST is made of `ASTNode` values.
+
+Each node has:
+
+* A node type
+* An optional string value
+* An optional data-structure type
+* Child nodes
+
+Common v1 node shapes include:
 
 ```text
 PROGRAM
-│
-├── REGISTER
-│   └── STATE DECLARATION
-│
-├── LOGIC
-│   ├── EXPRESSION
-│   ├── IF
-│   ├── ELSE IF
-│   └── ELSE
-│
-├── CONSTANT
-├── CONTRACT CALL
-├── EXECUTE
-├── TRANSITION
-├── CONTEXT
-│   └── RULE
-│
-└── DATA STRUCTURE OPERATION
-    ├── LIST
-    ├── QUEUE
-    ├── STACK
-    └── BRANCH
+  REGISTER
+    STATE
+      NAME
+      VALUE
+  LOGIC
+    EXPRESSION
+    CONSTANT
+    DATA STRUCTURE OPERATION
+      TYPE
+      PUSH
+      POP
+  EXECUTE
 ```
 
-The AST also explicitly records data types. This prevents the runtime from having to infer the intended structure from arbitrary strings.
+The AST is also used to represent parsed constructs whose runtime behavior is intentionally minimal in v1, including transitions, contexts/rules, conditional branches, and contract calls.
 
-## 5. Runtime
+## Runtime
 
-The runtime walks the AST and performs the operations represented by its nodes.
+The runtime walks the AST and executes supported node types.
+
+The v1 runtime performs these operations:
+
+* Creates runtime states from register declarations
+* Infers scalar number and string values
+* Creates list, queue, stack, and branch values from declared state types
+* Initializes collection contents
+* Resolves collection states by name
+* Validates collection operation types
+* Executes `push`
+* Executes `pop`
+* Prints constants during logic execution
+* Reports top-level `execute`
+* Prints final runtime state
+
+The runtime keeps program structure and live values separate. The AST describes the program; the `RuntimeStateStore` contains the current state produced by execution.
+
+## RuntimeStateStore
+
+`RuntimeStateStore` is a linked list of `RuntimeState` values.
+
+Each state contains:
 
 ```text
-                 AST
-                  │
-                  ▼
-          ┌───────────────┐
-          │ Runtime       │
-          │ Dispatcher    │
-          └───────┬───────┘
-                  │
-       ┌──────────┼──────────┐
-       ▼          ▼          ▼
-    States      Logic     Operations
-       │          │          │
-       └──────────┼──────────┘
-                  ▼
-          Runtime State Store
+name
+value
+next
 ```
 
-The runtime is responsible for:
+Each runtime value contains a type plus either scalar storage or collection storage.
 
-* Creating runtime states
-* Resolving state names
-* Executing logic
-* Evaluating conditions
-* Executing contracts
-* Performing transitions
-* Managing data structures
-* Executing `push` and `pop`
-* Handling runtime errors
-* Maintaining the current execution state
-
-## 6. Runtime State Store
-
-The Runtime State Store maintains the live state of a Chaos program.
-
-A runtime state contains:
+Scalar runtime types:
 
 ```text
-┌─────────────────────────┐
-│ Runtime State            │
-├─────────────────────────┤
-│ name                    │
-│ value                   │
-│ next                    │
-└─────────────────────────┘
+number
+string
+expression
 ```
 
-Runtime values may represent:
+Collection runtime types:
 
 ```text
-NUMBER
-STRING
-EXPRESSION
-LIST
-QUEUE
-STACK
-BRANCH
+list
+queue
+stack
+branch
 ```
 
-The AST's declared type and the runtime value's actual type are validated before operations are performed.
+Collection storage uses an expandable array of string items.
 
-```text
-AST declaration
-      │
-      ▼
-  declared type
-      │
-      │ validation
-      ▼
-Runtime State
-      │
-      ▼
-actual runtime value
-```
+## Execution Boundary
 
-A mismatch produces a runtime error rather than allowing an invalid operation to proceed.
+Chaos v1 is a functional core language and runtime. Its strongest runtime behavior is state registration plus collection mutation.
 
-## 7. Execution Model
+Several constructs are parsed and represented in the AST but do not yet mutate runtime state:
 
-Chaos separates program description from runtime state.
+* `if`
+* `else if`
+* `else`
+* Contract calls
+* `result`
+* `terminate`
+* `transition`
+* `context`
+* `rule`
 
-```text
-                  SOURCE
-                    │
-                    ▼
-                   AST
-                    │
-                    ▼
-                EXECUTION
-                    │
-          ┌─────────┴─────────┐
-          ▼                   ▼
-      Operations           State
-          │                   │
-          └─────────┬─────────┘
-                    ▼
-             Runtime State
-```
-
-The AST describes what the program contains.
-
-The Runtime State Store describes what the program currently contains.
-
-This distinction allows the same AST structure to be executed while runtime values change.
-
-## 8. Component Relationship
-
-The overall architecture can be represented as:
-
-```mermaid
-flowchart TD
-    A[".chaos Source"] --> B["Lexer"]
-    B --> C["Token Stream"]
-    C --> D["Parser"]
-    D --> E["AST"]
-    E --> F["Runtime"]
-    F --> G["Runtime State Store"]
-
-    F --> H["State Execution"]
-    F --> I["Logic Execution"]
-    F --> J["Contract Execution"]
-    F --> K["Transition Execution"]
-    F --> L["Data Structure Operations"]
-
-    H --> G
-    I --> G
-    J --> G
-    K --> G
-    L --> G
-```
-
-The separation between lexer, parser, AST, and runtime keeps the language implementation modular and allows each layer to evolve independently.
+This boundary is part of v1's architecture: the parser accepts the core language vocabulary, and the runtime executes the stable state and collection semantics.

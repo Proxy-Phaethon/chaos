@@ -534,7 +534,8 @@ int runtime_execute_data_structure_operation(
 /*
  * Execute a CONSTANT.
  *
- * Expression evaluation comes later.
+ * Constants are reported in v1; expression evaluation is outside
+ * the current runtime mutation surface.
  */
 int runtime_execute_constant(
     Runtime *runtime,
@@ -564,7 +565,7 @@ int runtime_execute_constant(
 }
 
 /*
- * Execute a LOGIC block.
+ * Execute a LOGIC node.
  */
 int runtime_execute_logic(
     Runtime *runtime,
