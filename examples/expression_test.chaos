@@ -1,0 +1,7 @@
+register ('expression_test'):
+    state: x = 10,
+    state: y = {x + 5},
+    state: z = {y * 2},
+;
+
+execute

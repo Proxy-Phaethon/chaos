@@ -81,13 +81,13 @@ static int expect(
 static ASTNode *parse_value(Parser *parser)
 {
     if (check(parser, TOKEN_EXPRESSION)) {
-        Token *token = advance_parser(parser);
+    Token *token = advance_parser(parser);
 
-        return ast_create(
-            AST_STATE_VALUE,
-            token->value
-        );
-    }
+    return ast_create(
+        AST_EXPRESSION,
+        token->value
+    );
+}
 
     if (check(parser, TOKEN_STRING)) {
         Token *token = advance_parser(parser);

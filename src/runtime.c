@@ -3,6 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+
+/*
+ * Evaluate a numeric expression.
+ */
+static int runtime_evaluate_expression(
+    RuntimeStateStore *states,
+    const char *expression,
+    double *result
+);
 
 /*
  * Convert an AST data-structure name into
@@ -211,6 +221,7 @@ int runtime_execute_register(
         const char *name = NULL;
         const char *value = NULL;
         const char *data_type = NULL;
+        int is_expression = 0;
 
         for (size_t j = 0;
              j < state->child_count;
@@ -227,6 +238,11 @@ int runtime_execute_register(
 
                 case AST_STATE_VALUE:
                     value = child->value;
+                    break;
+
+                case AST_EXPRESSION:
+                    value = child->value;
+                    is_expression = 1;
                     break;
 
                 case AST_DATA_TYPE:
@@ -247,14 +263,44 @@ int runtime_execute_register(
             return 0;
         }
 
-        RuntimeValueType type;
+       char evaluated_value[64];
 
-        if (data_type != NULL) {
-            type = runtime_data_type(data_type);
-        }
-        else {
-            type = runtime_scalar_type(value);
-        }
+if (is_expression) {
+
+    double result;
+
+    if (!runtime_evaluate_expression(
+            runtime->states,
+            value,
+            &result)) {
+
+        fprintf(
+            stderr,
+            "Runtime error: could not evaluate expression for state '%s'\n",
+            name
+        );
+
+        return 0;
+    }
+
+    snprintf(
+        evaluated_value,
+        sizeof(evaluated_value),
+        "%.15g",
+        result
+    );
+
+    value = evaluated_value;
+}
+
+RuntimeValueType type;
+
+if (data_type != NULL) {
+    type = runtime_data_type(data_type);
+}
+else {
+    type = runtime_scalar_type(value);
+}
 
         RuntimeState *runtime_state =
             runtime_state_create(
@@ -717,4 +763,444 @@ void runtime_print_state(
     runtime_state_print(
         runtime->states
     );
+}
+
+/*
+ * Small recursive-descent expression evaluator.
+ *
+ * Supported:
+ *
+ *     numbers
+ *     state names
+ *     + - * /
+ *     parentheses
+ *     unary + and -
+ *
+ * Example:
+ *
+ *     x + 5 * 2
+ *
+ * is evaluated as:
+ *
+ *     x + (5 * 2)
+ */
+
+typedef struct {
+    const char *input;
+    size_t position;
+    RuntimeStateStore *states;
+} ExpressionParser;
+
+
+/*
+ * Skip whitespace.
+ */
+static void expression_skip_spaces(
+    ExpressionParser *parser)
+{
+    while (isspace(
+        (unsigned char)parser->input[
+            parser->position
+        ])) {
+
+        parser->position++;
+    }
+}
+
+
+/*
+ * Look at the current character.
+ */
+static char expression_current(
+    ExpressionParser *parser)
+{
+    expression_skip_spaces(parser);
+
+    return parser->input[
+        parser->position
+    ];
+}
+
+
+/*
+ * Parse an expression.
+ *
+ * expression = term ((+ | -) term)*
+ */
+static int expression_parse_expression(
+    ExpressionParser *parser,
+    double *result);
+
+
+/*
+ * Parse a factor.
+ *
+ * factor =
+ *
+ *     number
+ *     identifier
+ *     ( expression )
+ *     + factor
+ *     - factor
+ */
+static int expression_parse_factor(
+    ExpressionParser *parser,
+    double *result)
+{
+    expression_skip_spaces(parser);
+
+    char current =
+        expression_current(parser);
+
+    /*
+     * Unary plus.
+     */
+    if (current == '+') {
+
+        parser->position++;
+
+        return expression_parse_factor(
+            parser,
+            result
+        );
+    }
+
+    /*
+     * Unary minus.
+     */
+    if (current == '-') {
+
+        parser->position++;
+
+        if (!expression_parse_factor(
+                parser,
+                result)) {
+
+            return 0;
+        }
+
+        *result = -*result;
+
+        return 1;
+    }
+
+    /*
+     * Parenthesized expression.
+     */
+    if (current == '(') {
+
+        parser->position++;
+
+        if (!expression_parse_expression(
+                parser,
+                result)) {
+
+            return 0;
+        }
+
+        if (expression_current(parser) != ')') {
+
+            fprintf(
+                stderr,
+                "Runtime error: expected ')' in expression\n"
+            );
+
+            return 0;
+        }
+
+        parser->position++;
+
+        return 1;
+    }
+
+    /*
+     * Number.
+     */
+    if (isdigit((unsigned char)current) ||
+        current == '.') {
+
+        char *end = NULL;
+
+        double value =
+            strtod(
+                parser->input +
+                    parser->position,
+                &end
+            );
+
+        if (end ==
+            parser->input +
+                parser->position) {
+
+            fprintf(
+                stderr,
+                "Runtime error: invalid number in expression\n"
+            );
+
+            return 0;
+        }
+
+        parser->position =
+            (size_t)(
+                end -
+                parser->input
+            );
+
+        *result = value;
+
+        return 1;
+    }
+
+    /*
+     * State name.
+     */
+    if (isalpha((unsigned char)current) ||
+        current == '_') {
+
+        char name[256];
+        size_t length = 0;
+
+        while (
+            isalnum(
+                (unsigned char)parser->input[
+                    parser->position
+                ]
+            ) ||
+            parser->input[
+                parser->position
+            ] == '_'
+        ) {
+
+            if (length < sizeof(name) - 1) {
+                name[length++] =
+                    parser->input[
+                        parser->position
+                    ];
+            }
+
+            parser->position++;
+        }
+
+        name[length] = '\0';
+
+        RuntimeState *state =
+            runtime_state_find(
+                parser->states,
+                name
+            );
+
+        if (state == NULL) {
+
+            fprintf(
+                stderr,
+                "Runtime error: unknown state '%s' in expression\n",
+                name
+            );
+
+            return 0;
+        }
+
+        if (state->value.type !=
+            RUNTIME_VALUE_NUMBER) {
+
+            fprintf(
+                stderr,
+                "Runtime error: state '%s' is not a number\n",
+                name
+            );
+
+            return 0;
+        }
+
+        char *end = NULL;
+
+        double value =
+            strtod(
+                state->value.scalar,
+                &end
+            );
+
+        if (end == state->value.scalar ||
+            *end != '\0') {
+
+            fprintf(
+                stderr,
+                "Runtime error: state '%s' contains an invalid number\n",
+                name
+            );
+
+            return 0;
+        }
+
+        *result = value;
+
+        return 1;
+    }
+
+    fprintf(
+        stderr,
+        "Runtime error: unexpected character '%c' in expression\n",
+        current
+    );
+
+    return 0;
+}
+
+
+/*
+ * Parse multiplication and division.
+ *
+ * term = factor ((* | /) factor)*
+ */
+static int expression_parse_term(
+    ExpressionParser *parser,
+    double *result)
+{
+    if (!expression_parse_factor(
+            parser,
+            result)) {
+
+        return 0;
+    }
+
+    while (1) {
+
+        char operator =
+            expression_current(parser);
+
+        if (operator != '*' &&
+            operator != '/') {
+
+            break;
+        }
+
+        parser->position++;
+
+        double right;
+
+        if (!expression_parse_factor(
+                parser,
+                &right)) {
+
+            return 0;
+        }
+
+        if (operator == '*') {
+            *result *= right;
+        }
+        else {
+
+            if (right == 0.0) {
+
+                fprintf(
+                    stderr,
+                    "Runtime error: division by zero\n"
+                );
+
+                return 0;
+            }
+
+            *result /= right;
+        }
+    }
+
+    return 1;
+}
+
+
+/*
+ * Parse addition and subtraction.
+ *
+ * expression = term ((+ | -) term)*
+ */
+static int expression_parse_expression(
+    ExpressionParser *parser,
+    double *result)
+{
+    if (!expression_parse_term(
+            parser,
+            result)) {
+
+        return 0;
+    }
+
+    while (1) {
+
+        char operator =
+            expression_current(parser);
+
+        if (operator != '+' &&
+            operator != '-') {
+
+            break;
+        }
+
+        parser->position++;
+
+        double right;
+
+        if (!expression_parse_term(
+                parser,
+                &right)) {
+
+            return 0;
+        }
+
+        if (operator == '+') {
+            *result += right;
+        }
+        else {
+            *result -= right;
+        }
+    }
+
+    return 1;
+}
+
+
+/*
+ * Evaluate a complete expression.
+ */
+static int runtime_evaluate_expression(
+    RuntimeStateStore *states,
+    const char *expression,
+    double *result)
+{
+    if (states == NULL ||
+        expression == NULL ||
+        result == NULL) {
+
+        return 0;
+    }
+
+    ExpressionParser parser = {
+        .input = expression,
+        .position = 0,
+        .states = states
+    };
+
+    if (!expression_parse_expression(
+            &parser,
+            result)) {
+
+        return 0;
+    }
+
+    expression_skip_spaces(&parser);
+
+    if (parser.input[
+            parser.position
+        ] != '\0') {
+
+        fprintf(
+            stderr,
+            "Runtime error: unexpected text in expression near '%s'\n",
+            parser.input +
+                parser.position
+        );
+
+        return 0;
+    }
+
+    return 1;
 }
