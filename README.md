@@ -47,7 +47,7 @@ The core primitives are:
 * `transition` — changes one state into another according to defined rules
 * `constant` — stores a local value that remains available to a piece of `logic`
 * `context` — defines the environment in which a piece of logic operates
-* `rule` / `rules` — defines constraints or conditions governing what may happen within a context
+* `rules` — defines constraints or conditions governing what may happen within a context
 
 Chaos also provides general-purpose data structures:
 
