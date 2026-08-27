@@ -1,5 +1,13 @@
-register ('error_test'):
-    state: x = {does_not_exist + 5},
+register ('comparison_test'):
+    state: x = 10,
+    state: y = 20,
+
+    state: less = {x < y},
+    state: greater = {y > x},
+    state: less_equal = {x <= 10},
+    state: greater_equal = {y >= 20},
+    state: equal = {x == 10},
+    state: not_equal = {x != y},
 ;
 
 execute

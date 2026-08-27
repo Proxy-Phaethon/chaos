@@ -6,7 +6,7 @@
 #include <ctype.h>
 
 /*
- * Evaluate a numeric expression.
+ * Evaluate an expression.
  */
 static int runtime_evaluate_expression(
     RuntimeStateStore *states,
@@ -773,16 +773,14 @@ void runtime_print_state(
  *     numbers
  *     state names
  *     + - * /
+ *     < > <= >= == !=
  *     parentheses
  *     unary + and -
  *
- * Example:
+ * Comparisons return:
  *
- *     x + 5 * 2
- *
- * is evaluated as:
- *
- *     x + (5 * 2)
+ *     true  = 1
+ *     false = 0
  */
 
 typedef struct {
@@ -823,11 +821,14 @@ static char expression_current(
 
 
 /*
- * Parse an expression.
+ * Parse a comparison expression.
  *
- * expression = term ((+ | -) term)*
+ * comparison =
+ *
+ *     term
+ *     ((< | > | <= | >= | == | !=) term)*
  */
-static int expression_parse_expression(
+static int expression_parse_comparison(
     ExpressionParser *parser,
     double *result);
 
@@ -891,7 +892,7 @@ static int expression_parse_factor(
 
         parser->position++;
 
-        if (!expression_parse_expression(
+        if (!expression_parse_comparison(
                 parser,
                 result)) {
 
@@ -972,6 +973,7 @@ static int expression_parse_factor(
         ) {
 
             if (length < sizeof(name) - 1) {
+
                 name[length++] =
                     parser->input[
                         parser->position
@@ -1111,9 +1113,9 @@ static int expression_parse_term(
 /*
  * Parse addition and subtraction.
  *
- * expression = term ((+ | -) term)*
+ * arithmetic = term ((+ | -) term)*
  */
-static int expression_parse_expression(
+static int expression_parse_arithmetic(
     ExpressionParser *parser,
     double *result)
 {
@@ -1159,6 +1161,103 @@ static int expression_parse_expression(
 
 
 /*
+ * Parse comparisons and equality.
+ */
+static int expression_parse_comparison(
+    ExpressionParser *parser,
+    double *result)
+{
+    if (!expression_parse_arithmetic(
+            parser,
+            result)) {
+
+        return 0;
+    }
+
+    while (1) {
+
+        expression_skip_spaces(parser);
+
+        const char *input =
+            parser->input +
+            parser->position;
+
+        /*
+         * Check two-character operators first.
+         */
+        if (strncmp(input, "<=", 2) == 0 ||
+            strncmp(input, ">=", 2) == 0 ||
+            strncmp(input, "==", 2) == 0 ||
+            strncmp(input, "!=", 2) == 0) {
+
+            double left = *result;
+            double right;
+
+            char first = input[0];
+            char second = input[1];
+
+            parser->position += 2;
+
+            if (!expression_parse_arithmetic(
+                    parser,
+                    &right)) {
+
+                return 0;
+            }
+
+            if (first == '<' && second == '=') {
+                *result = left <= right;
+            }
+            else if (first == '>' && second == '=') {
+                *result = left >= right;
+            }
+            else if (first == '=' && second == '=') {
+                *result = left == right;
+            }
+            else {
+                *result = left != right;
+            }
+
+            continue;
+        }
+
+        /*
+         * Check one-character comparison operators.
+         */
+        char operator =
+            expression_current(parser);
+
+        if (operator != '<' &&
+            operator != '>') {
+
+            break;
+        }
+
+        parser->position++;
+
+        double left = *result;
+        double right;
+
+        if (!expression_parse_arithmetic(
+                parser,
+                &right)) {
+
+            return 0;
+        }
+
+        if (operator == '<') {
+            *result = left < right;
+        }
+        else {
+            *result = left > right;
+        }
+    }
+
+    return 1;
+}
+
+
+/*
  * Evaluate a complete expression.
  */
 static int runtime_evaluate_expression(
@@ -1179,7 +1278,7 @@ static int runtime_evaluate_expression(
         .states = states
     };
 
-    if (!expression_parse_expression(
+    if (!expression_parse_comparison(
             &parser,
             result)) {
 
