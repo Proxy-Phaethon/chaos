@@ -1,7 +1,5 @@
-register ('expression_test'):
-    state: x = 10,
-    state: y = {x + 5},
-    state: z = {y * 2},
+register ('error_test'):
+    state: x = {does_not_exist + 5},
 ;
 
 execute
