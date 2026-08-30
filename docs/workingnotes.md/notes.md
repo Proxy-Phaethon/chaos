@@ -73,3 +73,6 @@ Transitions
 Contexts/rules
 Contracts
 execute semantics
+
+## Sunday, 30th August
+starting to regret this. should've just gone with 'claude make me a programming languages with no mistakes'. what is this bullshit? it would've been easier to just bruteforce C syntax into my head than build one of my own.
