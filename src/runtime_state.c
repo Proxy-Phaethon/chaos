@@ -4,10 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-/*
- * Copy a string into newly allocated memory.
- */
 static char *copy_string(const char *source)
 {
     if (source == NULL) {
@@ -25,10 +21,6 @@ static char *copy_string(const char *source)
     return result;
 }
 
-
-/*
- * Make sure a collection has room for another item.
- */
 static int ensure_capacity(RuntimeValue *value)
 {
     if (value == NULL) {
@@ -59,23 +51,6 @@ static int ensure_capacity(RuntimeValue *value)
     return 1;
 }
 
-
-/*
- * Create a runtime value.
- *
- * Scalar values use:
- *
- *     scalar
- *
- * Data structures use:
- *
- *     items
- *     item_count
- *     item_capacity
- *
- * Initial collection contents are populated later
- * by the runtime when the AST is executed.
- */
 RuntimeValue *runtime_value_create(
     RuntimeValueType type,
     const char *value)
@@ -100,18 +75,11 @@ RuntimeValue *runtime_value_create(
         result->item_count = 0;
         result->item_capacity = 0;
 
-        /*
-         * Collection contents will be populated
-         * by the runtime.
-         */
         (void)value;
 
         return result;
     }
 
-    /*
-     * Scalar value.
-     */
     if (value != NULL) {
         result->scalar = copy_string(value);
 
@@ -124,12 +92,6 @@ RuntimeValue *runtime_value_create(
     return result;
 }
 
-
-/*
- * Free the contents owned by a RuntimeValue.
- *
- * This does NOT free the RuntimeValue itself.
- */
 void runtime_value_free_contents(RuntimeValue *value)
 {
     if (value == NULL) {
@@ -150,10 +112,6 @@ void runtime_value_free_contents(RuntimeValue *value)
     value->item_capacity = 0;
 }
 
-
-/*
- * Free an entire RuntimeValue.
- */
 void runtime_value_free(RuntimeValue *value)
 {
     if (value == NULL) {
@@ -165,10 +123,6 @@ void runtime_value_free(RuntimeValue *value)
     free(value);
 }
 
-
-/*
- * Create a runtime state.
- */
 RuntimeState *runtime_state_create(
     const char *name,
     RuntimeValueType type,
@@ -203,11 +157,6 @@ RuntimeState *runtime_state_create(
         return NULL;
     }
 
-    /*
-     * Move the RuntimeValue contents into
-     * the state rather than allocating another
-     * RuntimeValue.
-     */
     state->value = *runtime_value;
 
     free(runtime_value);
@@ -217,10 +166,6 @@ RuntimeState *runtime_state_create(
     return state;
 }
 
-
-/*
- * Create an empty runtime state store.
- */
 RuntimeStateStore *runtime_state_store_create(void)
 {
     return calloc(
@@ -229,10 +174,6 @@ RuntimeStateStore *runtime_state_store_create(void)
     );
 }
 
-
-/*
- * Add a state to the store.
- */
 void runtime_state_store_add(
     RuntimeStateStore *store,
     RuntimeState *state)
@@ -245,10 +186,6 @@ void runtime_state_store_add(
     store->head = state;
 }
 
-
-/*
- * Find a state by name.
- */
 RuntimeState *runtime_state_find(
     RuntimeStateStore *store,
     const char *name)
@@ -270,10 +207,6 @@ RuntimeState *runtime_state_find(
     return NULL;
 }
 
-
-/*
- * Free the entire state store.
- */
 void runtime_state_store_free(
     RuntimeStateStore *store)
 {
@@ -300,13 +233,6 @@ void runtime_state_store_free(
     free(store);
 }
 
-
-/*
- * Push a value onto a collection.
- *
- * All v1 collection types append through the
- * same expandable storage mechanism.
- */
 int runtime_state_push(
     RuntimeState *state,
     const char *value)
@@ -345,24 +271,6 @@ int runtime_state_push(
     return 1;
 }
 
-
-/*
- * Pop a value from a collection.
- *
- * Stack:
- *     removes newest item.
- *
- * Queue:
- *     removes oldest item.
- *
- * List:
- *     currently removes oldest item.
- *
- * Branch:
- *     currently removes oldest item.
- *
- * List and branch use oldest-item removal in v1.
- */
 char *runtime_state_pop(
     RuntimeState *state)
 {
@@ -388,25 +296,14 @@ char *runtime_state_pop(
     size_t index;
 
     if (value->type == RUNTIME_VALUE_STACK) {
-        /*
-         * Stack = LIFO.
-         */
         index = value->item_count - 1;
     }
     else {
-        /*
-         * Queue/list/branch currently remove
-         * the oldest stored item.
-         */
         index = 0;
     }
 
     char *result = value->items[index];
 
-    /*
-     * If removing the first item, shift the
-     * remaining items one position to the left.
-     */
     if (index == 0) {
         for (size_t i = 1;
              i < value->item_count;
@@ -426,10 +323,6 @@ char *runtime_state_pop(
     return result;
 }
 
-
-/*
- * Return a human-readable runtime value type.
- */
 const char *runtime_value_type_name(
     RuntimeValueType type)
 {
@@ -460,10 +353,6 @@ const char *runtime_value_type_name(
     }
 }
 
-
-/*
- * Print the current runtime state store.
- */
 void runtime_state_print(
     const RuntimeStateStore *store)
 {

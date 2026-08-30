@@ -313,20 +313,6 @@ static void lex_symbol(
     const char *start = *cursor;
     size_t start_column = *column;
 
-    /*
-     * Keep consuming operator characters as one token.
-     *
-     * Examples:
-     * <
-     * >
-     * <=
-     * >=
-     * !=
-     * +
-     * -
-     * *
-     * /
-     */
     while (**cursor != '\0' &&
            strchr("<>!+-*/%&|", **cursor) != NULL) {
 

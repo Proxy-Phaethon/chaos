@@ -41,10 +41,6 @@ typedef enum {
     AST_EXECUTE
 } ASTType;
 
-
-/*
- * Data structure type attached to a state.
- */
 typedef enum {
     DATA_TYPE_NONE,
     DATA_TYPE_LIST,
@@ -53,18 +49,11 @@ typedef enum {
     DATA_TYPE_BRANCH
 } DataType;
 
-
-/*
- * Abstract Syntax Tree node.
- */
 typedef struct ASTNode {
     ASTType type;
 
     char *value;
 
-    /*
-     * Used by state/data-structure nodes.
-     */
     DataType data_type;
 
     struct ASTNode **children;
@@ -73,45 +62,25 @@ typedef struct ASTNode {
 
 } ASTNode;
 
-
-/*
- * Node creation.
- */
 ASTNode *ast_create(
     ASTType type,
     const char *value
 );
 
-
-/*
- * Add a child node.
- */
 void ast_add_child(
     ASTNode *parent,
     ASTNode *child
 );
 
-
-/*
- * Debugging / inspection.
- */
 void ast_print(
     const ASTNode *node,
     int depth
 );
 
-
-/*
- * Memory management.
- */
 void ast_free(
     ASTNode *node
 );
 
-
-/*
- * AST type name.
- */
 const char *ast_type_name(
     ASTType type
 );

@@ -17,16 +17,8 @@ typedef enum {
 typedef struct RuntimeValue {
     RuntimeValueType type;
 
-    /*
-     * Used for scalar values:
-     * numbers, strings, expressions.
-     */
     char *scalar;
 
-    /*
-     * Used for data structures:
-     * list, queue, stack, branch.
-     */
     char **items;
     size_t item_count;
     size_t item_capacity;
@@ -43,9 +35,6 @@ typedef struct {
     RuntimeState *head;
 } RuntimeStateStore;
 
-
-/* Store */
-
 RuntimeStateStore *runtime_state_store_create(void);
 
 void runtime_state_store_free(
@@ -61,9 +50,6 @@ RuntimeState *runtime_state_find(
     RuntimeStateStore *store,
     const char *name
 );
-
-
-/* Values */
 
 RuntimeValue *runtime_value_create(
     RuntimeValueType type,
@@ -88,9 +74,6 @@ RuntimeState *runtime_state_create(
     const char *value
 );
 
-
-/* Data structure operations */
-
 int runtime_state_push(
     RuntimeState *state,
     const char *value
@@ -99,9 +82,6 @@ int runtime_state_push(
 char *runtime_state_pop(
     RuntimeState *state
 );
-
-
-/* Debugging */
 
 void runtime_state_print(
     const RuntimeStateStore *store

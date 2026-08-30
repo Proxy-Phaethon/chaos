@@ -4,11 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-/* ============================================================
- * Parser helpers
- * ============================================================ */
-
 static Token *current(Parser *parser)
 {
     return &parser->tokens->items[parser->current];
@@ -73,11 +68,6 @@ static int expect(
     return 0;
 }
 
-
-/* ============================================================
- * Values
- * ============================================================ */
-
 static ASTNode *parse_value(Parser *parser)
 {
     if (check(parser, TOKEN_EXPRESSION)) {
@@ -123,15 +113,6 @@ static ASTNode *parse_value(Parser *parser)
 
     return NULL;
 }
-
-
-/* ============================================================
- * Register states
- *
- * state: x = 3
- *
- * state: fruits, list = {'a', 'b'}
- * ============================================================ */
 
 static ASTNode *parse_register_state(Parser *parser)
 {
@@ -186,13 +167,6 @@ static ASTNode *parse_register_state(Parser *parser)
         name_node
     );
 
-
-    /*
-     * Normal state:
-     *
-     * state: x = 42
-     */
-
     if (check(parser, TOKEN_EQUALS)) {
         advance_parser(parser);
 
@@ -211,13 +185,6 @@ static ASTNode *parse_register_state(Parser *parser)
 
         return state;
     }
-
-
-    /*
-     * Data structure state:
-     *
-     * state: fruits, list = {'apple', 'banana'}
-     */
 
     if (check(parser, TOKEN_COMMA)) {
         advance_parser(parser);
@@ -278,26 +245,8 @@ static ASTNode *parse_register_state(Parser *parser)
         return state;
     }
 
-
-    /*
-     * A state containing only a name
-     * is valid.
-     */
-
     return state;
 }
-
-
-/* ============================================================
- * Register
- *
- * register ('name'):
- *
- *     state: ...
- *     state: ...
- *
- * ;
- * ============================================================ */
 
 static ASTNode *parse_register(Parser *parser)
 {
@@ -317,11 +266,6 @@ static ASTNode *parse_register(Parser *parser)
     if (register_node == NULL) {
         return NULL;
     }
-
-
-    /*
-     * Optional register name.
-     */
 
     if (check(parser, TOKEN_LPAREN)) {
         advance_parser(parser);
@@ -369,11 +313,6 @@ static ASTNode *parse_register(Parser *parser)
         advance_parser(parser);
     }
 
-
-    /*
-     * Parse states until ';'.
-     */
-
     while (!check(parser, TOKEN_SEMICOLON) &&
            !check(parser, TOKEN_EOF)) {
 
@@ -411,13 +350,6 @@ static ASTNode *parse_register(Parser *parser)
     return register_node;
 }
 
-
-/* ============================================================
- * Constant
- *
- * constant: x < y;
- * ============================================================ */
-
 static ASTNode *parse_constant(Parser *parser)
 {
     if (!expect(
@@ -444,12 +376,6 @@ static ASTNode *parse_constant(Parser *parser)
     if (constant == NULL) {
         return NULL;
     }
-
-
-    /*
-     * Everything until ';' becomes the
-     * constant expression.
-     */
 
     char buffer[4096];
 
@@ -503,37 +429,10 @@ static ASTNode *parse_constant(Parser *parser)
     return constant;
 }
 
-
-/* ============================================================
- * Data structure operations
- *
- * list fruits
- *     (push 'apple')
- *     (push 'banana')
- *     (pop),
- *
- * queue waiting
- *     (pop),
- *
- * stack history
- *     (push 'newest')
- *     (pop),
- *
- * branch tree
- *     (push '60')
- *     (push '5'),
- * ============================================================ */
-
 static ASTNode *parse_data_structure_operation(
     Parser *parser)
 {
     const char *type_name = NULL;
-
-
-    /*
-     * Determine which data structure
-     * we're operating on.
-     */
 
     if (check(parser, TOKEN_LIST)) {
         type_name = "list";
@@ -558,11 +457,6 @@ static ASTNode *parse_data_structure_operation(
 
     advance_parser(parser);
 
-
-    /*
-     * Data structure name.
-     */
-
     if (!check(parser, TOKEN_IDENTIFIER)) {
         parser_error(
             parser,
@@ -575,13 +469,6 @@ static ASTNode *parse_data_structure_operation(
     Token *name =
         advance_parser(parser);
 
-
-    /*
-     * Parent node:
-     *
-     * DATA STRUCTURE OPERATION: fruits
-     */
-
     ASTNode *node = ast_create(
         AST_DATA_STRUCTURE_OPERATION,
         name->value
@@ -590,11 +477,6 @@ static ASTNode *parse_data_structure_operation(
     if (node == NULL) {
         return NULL;
     }
-
-
-    /*
-     * TYPE: list
-     */
 
     ASTNode *type_node = ast_create(
         AST_DATA_TYPE,
@@ -611,16 +493,6 @@ static ASTNode *parse_data_structure_operation(
         type_node
     );
 
-
-    /*
-     * Consume nested operations until
-     * the comma terminating this group.
-     *
-     *     (push 'apple')
-     *     (push 'banana')
-     *     (pop),
-     */
-
     while (!check(parser, TOKEN_COMMA) &&
            !check(parser, TOKEN_EOF) &&
            !check(parser, TOKEN_SEMICOLON)) {
@@ -636,11 +508,6 @@ static ASTNode *parse_data_structure_operation(
 
 
         ASTNode *operation = NULL;
-
-
-        /*
-         * push
-         */
 
         if (check(parser, TOKEN_PUSH)) {
 
@@ -671,11 +538,6 @@ static ASTNode *parse_data_structure_operation(
             );
         }
 
-
-        /*
-         * pop
-         */
-
         else if (check(parser, TOKEN_POP)) {
 
             advance_parser(parser);
@@ -690,11 +552,6 @@ static ASTNode *parse_data_structure_operation(
                 return NULL;
             }
         }
-
-
-        /*
-         * Unknown operation.
-         */
 
         else {
             parser_error(
@@ -723,11 +580,6 @@ static ASTNode *parse_data_structure_operation(
         }
     }
 
-
-    /*
-     * The comma terminates the operation group.
-     */
-
     if (!expect(
             parser,
             TOKEN_COMMA,
@@ -739,11 +591,6 @@ static ASTNode *parse_data_structure_operation(
 
     return node;
 }
-
-
-/* ============================================================
- * Contract calls
- * ============================================================ */
 
 static ASTNode *parse_contract_call(Parser *parser)
 {
@@ -850,11 +697,6 @@ static ASTNode *parse_contract_call(Parser *parser)
     return node;
 }
 
-
-/* ============================================================
- * Conditions
- * ============================================================ */
-
 static ASTNode *parse_condition(Parser *parser)
 {
     if (check(parser, TOKEN_EXPRESSION)) {
@@ -903,11 +745,6 @@ static ASTNode *parse_condition(Parser *parser)
     return NULL;
 }
 
-
-/* ============================================================
- * Generic operations
- * ============================================================ */
-
 static ASTNode *parse_operation(Parser *parser)
 {
     if (check(parser, TOKEN_TERMINATE)) {
@@ -922,11 +759,6 @@ static ASTNode *parse_operation(Parser *parser)
 
     return parse_contract_call(parser);
 }
-
-
-/* ============================================================
- * IF
- * ============================================================ */
 
 static ASTNode *parse_if(Parser *parser)
 {
@@ -988,20 +820,8 @@ static ASTNode *parse_if(Parser *parser)
     return node;
 }
 
-
-/* ============================================================
- * ELSE IF
- * ============================================================ */
-
 static ASTNode *parse_else_if(Parser *parser)
 {
-    /*
-     * We arrive here at:
-     *
-     * else if ...
-     *
-     * Consume both keywords.
-     */
 
     advance_parser(parser);
     advance_parser(parser);
@@ -1056,11 +876,6 @@ static ASTNode *parse_else_if(Parser *parser)
     return node;
 }
 
-
-/* ============================================================
- * ELSE
- * ============================================================ */
-
 static ASTNode *parse_else(Parser *parser)
 {
     advance_parser(parser);
@@ -1090,13 +905,6 @@ static ASTNode *parse_else(Parser *parser)
 
     return node;
 }
-
-
-/* ============================================================
- * Transition
- *
- * transition ('none');
- * ============================================================ */
 
 static ASTNode *parse_transition(Parser *parser)
 {
@@ -1154,14 +962,6 @@ static ASTNode *parse_transition(Parser *parser)
 
     return node;
 }
-
-
-/* ============================================================
- * Context / Rule
- *
- * context {x + 1 = 2},
- * rule ('x not equal 0');
- * ============================================================ */
 
 static ASTNode *parse_context(Parser *parser)
 {
@@ -1270,24 +1070,6 @@ static ASTNode *parse_context(Parser *parser)
     return node;
 }
 
-
-/* ============================================================
- * Logic
- *
- * logic {x > 0};
- *
- *     constant: x < y;
- *
- *     list fruits
- *         (push 'apple')
- *         (pop),
- *
- *     transition ('none');
- *
- *     context {x},
- *     rule ('something');
- * ============================================================ */
-
 static ASTNode *parse_logic(Parser *parser)
 {
     if (!expect(
@@ -1306,11 +1088,6 @@ static ASTNode *parse_logic(Parser *parser)
     if (logic == NULL) {
         return NULL;
     }
-
-
-    /*
-     * Initial logic expression.
-     */
 
     ASTNode *question =
         parse_condition(parser);
@@ -1335,18 +1112,8 @@ static ASTNode *parse_logic(Parser *parser)
         return NULL;
     }
 
-
-    /*
-     * Logic statements.
-     */
-
     while (!check(parser, TOKEN_EXECUTE) &&
            !check(parser, TOKEN_EOF)) {
-
-
-        /*
-         * if / else-if / else
-         */
 
         if (check(parser, TOKEN_IF)) {
 
@@ -1365,11 +1132,6 @@ static ASTNode *parse_logic(Parser *parser)
 
 
             while (check(parser, TOKEN_ELSE)) {
-
-                /*
-                 * Look ahead to determine whether
-                 * this is "else if".
-                 */
 
                 if (parser->current + 1 <
                     parser->tokens->count &&
@@ -1418,11 +1180,6 @@ static ASTNode *parse_logic(Parser *parser)
             continue;
         }
 
-
-        /*
-         * constant
-         */
-
         if (check(parser, TOKEN_CONSTANT)) {
 
             ASTNode *constant =
@@ -1440,18 +1197,6 @@ static ASTNode *parse_logic(Parser *parser)
 
             continue;
         }
-
-
-        /*
-         * Data structure operation groups.
-         *
-         * list fruits
-         *     (push 'apple')
-         *     (push 'banana'),
-         *
-         * queue waiting
-         *     (pop),
-         */
 
         if (check(parser, TOKEN_LIST) ||
             check(parser, TOKEN_QUEUE) ||
@@ -1473,11 +1218,6 @@ static ASTNode *parse_logic(Parser *parser)
 
             continue;
         }
-
-
-        /*
-         * transition
-         */
 
         if (check(parser, TOKEN_TRANSITION)) {
 
@@ -1502,11 +1242,6 @@ static ASTNode *parse_logic(Parser *parser)
             continue;
         }
 
-
-        /*
-         * context
-         */
-
         if (check(parser, TOKEN_CONTEXT)) {
 
             ASTNode *context =
@@ -1530,11 +1265,6 @@ static ASTNode *parse_logic(Parser *parser)
             continue;
         }
 
-
-        /*
-         * Anything else is invalid inside logic.
-         */
-
         parser_error(
             parser,
             "unexpected statement inside logic"
@@ -1546,11 +1276,6 @@ static ASTNode *parse_logic(Parser *parser)
     return logic;
 }
 
-
-/* ============================================================
- * Execute
- * ============================================================ */
-
 static ASTNode *parse_execute(Parser *parser)
 {
     advance_parser(parser);
@@ -1560,11 +1285,6 @@ static ASTNode *parse_execute(Parser *parser)
         "execute"
     );
 }
-
-
-/* ============================================================
- * Program
- * ============================================================ */
 
 ASTNode *parser_parse(TokenList *tokens)
 {
@@ -1594,11 +1314,6 @@ ASTNode *parser_parse(TokenList *tokens)
 
     while (!check(&parser, TOKEN_EOF)) {
 
-
-        /*
-         * register
-         */
-
         if (check(&parser, TOKEN_REGISTER)) {
 
             ASTNode *register_node =
@@ -1617,11 +1332,6 @@ ASTNode *parser_parse(TokenList *tokens)
             continue;
         }
 
-
-        /*
-         * logic
-         */
-
         if (check(&parser, TOKEN_LOGIC)) {
 
             ASTNode *logic =
@@ -1639,11 +1349,6 @@ ASTNode *parser_parse(TokenList *tokens)
 
             continue;
         }
-
-
-        /*
-         * execute
-         */
 
         if (check(&parser, TOKEN_EXECUTE)) {
 

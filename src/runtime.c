@@ -5,19 +5,12 @@
 #include <string.h>
 #include <ctype.h>
 
-/*
- * Evaluate an expression.
- */
 static int runtime_evaluate_expression(
     RuntimeStateStore *states,
     const char *expression,
     double *result
 );
 
-/*
- * Convert an AST data-structure name into
- * the corresponding runtime value type.
- */
 static RuntimeValueType runtime_data_type(
     const char *type)
 {
@@ -44,9 +37,6 @@ static RuntimeValueType runtime_data_type(
     return RUNTIME_VALUE_STRING;
 }
 
-/*
- * Determine the runtime type of a scalar state.
- */
 static RuntimeValueType runtime_scalar_type(
     const char *value)
 {
@@ -65,9 +55,6 @@ static RuntimeValueType runtime_scalar_type(
     return RUNTIME_VALUE_STRING;
 }
 
-/*
- * Create the runtime.
- */
 Runtime *runtime_create(void)
 {
     Runtime *runtime = calloc(
@@ -90,9 +77,6 @@ Runtime *runtime_create(void)
     return runtime;
 }
 
-/*
- * Destroy the runtime.
- */
 void runtime_free(
     Runtime *runtime)
 {
@@ -107,12 +91,6 @@ void runtime_free(
     free(runtime);
 }
 
-/*
- * Add the initial contents of a data structure.
- *
- * The parser currently stores the collection contents
- * as one comma-separated AST value.
- */
 static int runtime_initialize_collection(
     RuntimeState *state,
     const char *value)
@@ -156,9 +134,6 @@ static int runtime_initialize_collection(
             length--;
         }
 
-        /*
-         * Remove surrounding single quotes.
-         */
         length = strlen(item);
 
         if (length >= 2 &&
@@ -185,16 +160,6 @@ static int runtime_initialize_collection(
     return 1;
 }
 
-/*
- * Execute a REGISTER node.
- *
- * Example:
- *
- * register ('everything'):
- *
- *     state: integer = 42,
- *     state: fruits, list = {'apple', 'banana'};
- */
 int runtime_execute_register(
     Runtime *runtime,
     const ASTNode *register_node)
@@ -319,10 +284,6 @@ else {
             return 0;
         }
 
-        /*
-         * Populate initial list/queue/stack/branch
-         * contents.
-         */
         if (data_type != NULL &&
             value != NULL) {
 
@@ -357,9 +318,6 @@ else {
     return 1;
 }
 
-/*
- * Execute one PUSH or POP action.
- */
 static int runtime_execute_action(
     RuntimeState *state,
     const ASTNode *action)
@@ -370,9 +328,6 @@ static int runtime_execute_action(
         return 0;
     }
 
-    /*
-     * PUSH
-     */
     if (action->type == AST_PUSH) {
 
         if (action->child_count == 0) {
@@ -412,9 +367,6 @@ static int runtime_execute_action(
         return 1;
     }
 
-    /*
-     * POP
-     */
     if (action->type == AST_POP) {
 
         char *value =
@@ -444,24 +396,6 @@ static int runtime_execute_action(
     return 0;
 }
 
-/*
- * Execute a data-structure operation group.
- *
- * New syntax:
- *
- * list fruits
- *     (push 'apple')
- *     (push 'banana'),
- *
- * AST:
- *
- * DATA STRUCTURE OPERATION: fruits
- *     DATA_TYPE: list
- *     PUSH
- *         VALUE: apple
- *     PUSH
- *         VALUE: banana
- */
 int runtime_execute_data_structure_operation(
     Runtime *runtime,
     const ASTNode *operation)
@@ -545,10 +479,6 @@ int runtime_execute_data_structure_operation(
         return 0;
     }
 
-    /*
-     * The AST contains the data type as one child,
-     * followed by any number of PUSH/POP operations.
-     */
     for (size_t i = 0;
          i < operation->child_count;
          i++) {
@@ -577,12 +507,6 @@ int runtime_execute_data_structure_operation(
     return 1;
 }
 
-/*
- * Execute a CONSTANT.
- *
- * Constants are reported in v1; expression evaluation is outside
- * the current runtime mutation surface.
- */
 int runtime_execute_constant(
     Runtime *runtime,
     const ASTNode *constant)
@@ -610,9 +534,6 @@ int runtime_execute_constant(
     return 1;
 }
 
-/*
- * Execute a LOGIC node.
- */
 int runtime_execute_logic(
     Runtime *runtime,
     const ASTNode *logic_node)
@@ -650,10 +571,6 @@ int runtime_execute_logic(
                 }
                 break;
 
-            /*
-             * These systems are recognized by the parser
-             * but are not runtime semantics yet.
-             */
             case AST_EXPRESSION:
             case AST_TRANSITION:
             case AST_CONTEXT:
@@ -674,9 +591,6 @@ int runtime_execute_logic(
     return 1;
 }
 
-/*
- * Execute the EXECUTE statement.
- */
 int runtime_execute_execute(
     Runtime *runtime,
     const ASTNode *execute_node)
@@ -689,9 +603,6 @@ int runtime_execute_execute(
     return 1;
 }
 
-/*
- * Execute an entire Chaos program.
- */
 int runtime_execute(
     Runtime *runtime,
     const ASTNode *program)
@@ -750,9 +661,6 @@ int runtime_execute(
     return 1;
 }
 
-/*
- * Print all current runtime states.
- */
 void runtime_print_state(
     const Runtime *runtime)
 {
@@ -765,34 +673,12 @@ void runtime_print_state(
     );
 }
 
-/*
- * Small recursive-descent expression evaluator.
- *
- * Supported:
- *
- *     numbers
- *     state names
- *     + - * /
- *     < > <= >= == !=
- *     parentheses
- *     unary + and -
- *
- * Comparisons return:
- *
- *     true  = 1
- *     false = 0
- */
-
 typedef struct {
     const char *input;
     size_t position;
     RuntimeStateStore *states;
 } ExpressionParser;
 
-
-/*
- * Skip whitespace.
- */
 static void expression_skip_spaces(
     ExpressionParser *parser)
 {
@@ -805,10 +691,6 @@ static void expression_skip_spaces(
     }
 }
 
-
-/*
- * Look at the current character.
- */
 static char expression_current(
     ExpressionParser *parser)
 {
@@ -819,31 +701,10 @@ static char expression_current(
     ];
 }
 
-
-/*
- * Parse a comparison expression.
- *
- * comparison =
- *
- *     term
- *     ((< | > | <= | >= | == | !=) term)*
- */
 static int expression_parse_comparison(
     ExpressionParser *parser,
     double *result);
 
-
-/*
- * Parse a factor.
- *
- * factor =
- *
- *     number
- *     identifier
- *     ( expression )
- *     + factor
- *     - factor
- */
 static int expression_parse_factor(
     ExpressionParser *parser,
     double *result)
@@ -853,9 +714,6 @@ static int expression_parse_factor(
     char current =
         expression_current(parser);
 
-    /*
-     * Unary plus.
-     */
     if (current == '+') {
 
         parser->position++;
@@ -866,9 +724,6 @@ static int expression_parse_factor(
         );
     }
 
-    /*
-     * Unary minus.
-     */
     if (current == '-') {
 
         parser->position++;
@@ -885,9 +740,6 @@ static int expression_parse_factor(
         return 1;
     }
 
-    /*
-     * Parenthesized expression.
-     */
     if (current == '(') {
 
         parser->position++;
@@ -914,9 +766,6 @@ static int expression_parse_factor(
         return 1;
     }
 
-    /*
-     * Number.
-     */
     if (isdigit((unsigned char)current) ||
         current == '.') {
 
@@ -952,9 +801,6 @@ static int expression_parse_factor(
         return 1;
     }
 
-    /*
-     * State name.
-     */
     if (isalpha((unsigned char)current) ||
         current == '_') {
 
@@ -1048,12 +894,6 @@ static int expression_parse_factor(
     return 0;
 }
 
-
-/*
- * Parse multiplication and division.
- *
- * term = factor ((* | /) factor)*
- */
 static int expression_parse_term(
     ExpressionParser *parser,
     double *result)
@@ -1109,12 +949,6 @@ static int expression_parse_term(
     return 1;
 }
 
-
-/*
- * Parse addition and subtraction.
- *
- * arithmetic = term ((+ | -) term)*
- */
 static int expression_parse_arithmetic(
     ExpressionParser *parser,
     double *result)
@@ -1159,10 +993,6 @@ static int expression_parse_arithmetic(
     return 1;
 }
 
-
-/*
- * Parse comparisons and equality.
- */
 static int expression_parse_comparison(
     ExpressionParser *parser,
     double *result)
@@ -1182,9 +1012,6 @@ static int expression_parse_comparison(
             parser->input +
             parser->position;
 
-        /*
-         * Check two-character operators first.
-         */
         if (strncmp(input, "<=", 2) == 0 ||
             strncmp(input, ">=", 2) == 0 ||
             strncmp(input, "==", 2) == 0 ||
@@ -1221,9 +1048,6 @@ static int expression_parse_comparison(
             continue;
         }
 
-        /*
-         * Check one-character comparison operators.
-         */
         char operator =
             expression_current(parser);
 
@@ -1256,10 +1080,6 @@ static int expression_parse_comparison(
     return 1;
 }
 
-
-/*
- * Evaluate a complete expression.
- */
 static int runtime_evaluate_expression(
     RuntimeStateStore *states,
     const char *expression,

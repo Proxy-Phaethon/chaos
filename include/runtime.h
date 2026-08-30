@@ -8,22 +8,16 @@ typedef struct {
     RuntimeStateStore *states;
 } Runtime;
 
-/* Runtime lifecycle */
-
 Runtime *runtime_create(void);
 
 void runtime_free(
     Runtime *runtime
 );
 
-/* Execute an entire Chaos AST */
-
 int runtime_execute(
     Runtime *runtime,
     const ASTNode *program
 );
-
-/* Execute individual AST structures */
 
 int runtime_execute_register(
     Runtime *runtime,
@@ -49,8 +43,6 @@ int runtime_execute_execute(
     Runtime *runtime,
     const ASTNode *execute_node
 );
-
-/* Debugging / inspection */
 
 void runtime_print_state(
     const Runtime *runtime
