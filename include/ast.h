@@ -67,7 +67,7 @@ ASTNode *ast_create(
     const char *value
 );
 
-void ast_add_child(
+int ast_add_child(
     ASTNode *parent,
     ASTNode *child
 );
