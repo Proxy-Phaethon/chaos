@@ -100,7 +100,9 @@ int main(int argc, char **argv)
 
     printf("\nRuntime:\n");
 
-    if (!runtime_execute(runtime, program)) {
+    RuntimeResult runtime_result = runtime_execute(runtime, program);
+
+    if (runtime_result != RUNTIME_SUCCESS) {
         fprintf(
             stderr,
             "Runtime error: execution failed.\n"
