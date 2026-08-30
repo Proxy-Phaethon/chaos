@@ -729,6 +729,12 @@ static ASTNode *parse_condition(Parser *parser)
     return NULL;
 }
 
+/*
+ * Forward declaration because conditional branches
+ * can contain nested conditionals.
+ */
+static ASTNode *parse_if(Parser *parser);
+
 static ASTNode *parse_operation(Parser *parser)
 {
     if (check(parser, TOKEN_TERMINATE)) {
@@ -741,72 +747,111 @@ static ASTNode *parse_operation(Parser *parser)
         );
     }
 
+    if (check(parser, TOKEN_IF)) {
+        return parse_if(parser);
+    }
+
     return parse_contract_call(parser);
 }
 
-static ASTNode *parse_if(Parser *parser);
-
-static ASTNode *parse_branch_body(Parser *parser)
+static ASTNode *parse_else_if(Parser *parser)
 {
-    ASTNode *body = ast_create(
-        AST_LOGIC,
-        NULL
-    );
+    if (!expect(
+            parser,
+            TOKEN_ELSE,
+            "expected 'else'")) {
 
-    if (body == NULL) {
         return NULL;
     }
 
-    while (!check(parser, TOKEN_ELSE) &&
-           !check(parser, TOKEN_SEMICOLON) &&
-           !check(parser, TOKEN_EOF) &&
-           !check(parser, TOKEN_EXECUTE)) {
+    if (!expect(
+            parser,
+            TOKEN_IF,
+            "expected 'if' after 'else'")) {
 
-        ASTNode *statement = NULL;
-
-        if (check(parser, TOKEN_IF)) {
-            statement = parse_if(parser);
-        }
-        else if (check(parser, TOKEN_CONSTANT)) {
-            statement = parse_constant(parser);
-        }
-        else if (check(parser, TOKEN_LIST) ||
-                 check(parser, TOKEN_QUEUE) ||
-                 check(parser, TOKEN_STACK) ||
-                 check(parser, TOKEN_BRANCH)) {
-
-            statement =
-                parse_data_structure_operation(parser);
-        }
-        else if (check(parser, TOKEN_TERMINATE)) {
-            statement = parse_operation(parser);
-        }
-        else {
-            parser_error(
-                parser,
-                "unexpected statement inside branch"
-            );
-
-            ast_free(body);
-            return NULL;
-        }
-
-        if (statement == NULL) {
-            ast_free(body);
-            return NULL;
-        }
-
-        ast_add_child(
-            body,
-            statement
-        );
-
-        if (check(parser, TOKEN_SEMICOLON)) {
-            advance_parser(parser);
-        }
+        return NULL;
     }
 
-    return body;
+    ASTNode *node = ast_create(
+        AST_ELSE_IF,
+        NULL
+    );
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    ASTNode *condition =
+        parse_condition(parser);
+
+    if (condition == NULL) {
+        ast_free(node);
+        return NULL;
+    }
+
+    ast_add_child(
+        node,
+        condition
+    );
+
+    if (!expect(
+            parser,
+            TOKEN_COMMA,
+            "expected ',' after condition")) {
+
+        ast_free(node);
+        return NULL;
+    }
+
+    ASTNode *operation =
+        parse_operation(parser);
+
+    if (operation == NULL) {
+        ast_free(node);
+        return NULL;
+    }
+
+    ast_add_child(
+        node,
+        operation
+    );
+
+    return node;
+}
+
+static ASTNode *parse_else(Parser *parser)
+{
+    if (!expect(
+            parser,
+            TOKEN_ELSE,
+            "expected 'else'")) {
+
+        return NULL;
+    }
+
+    ASTNode *node = ast_create(
+        AST_ELSE,
+        NULL
+    );
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    ASTNode *operation =
+        parse_operation(parser);
+
+    if (operation == NULL) {
+        ast_free(node);
+        return NULL;
+    }
+
+    ast_add_child(
+        node,
+        operation
+    );
+
+    return node;
 }
 
 static ASTNode *parse_if(Parser *parser)
@@ -850,99 +895,67 @@ static ASTNode *parse_if(Parser *parser)
         return NULL;
     }
 
-    ASTNode *body =
-        parse_branch_body(parser);
+    ASTNode *operation =
+        parse_operation(parser);
 
-    if (body == NULL) {
+    if (operation == NULL) {
         ast_free(node);
         return NULL;
     }
 
     ast_add_child(
         node,
-        body
+        operation
     );
 
-    return node;
-}
+    /*
+     * The entire else-if / else chain belongs to this IF.
+     * This is important for conditional execution because
+     * the runtime can now evaluate one chain as a unit.
+     */
+    while (check(parser, TOKEN_ELSE)) {
 
-static ASTNode *parse_else_if(Parser *parser)
-{
-    advance_parser(parser);
-    advance_parser(parser);
+        if (parser->current + 1 <
+            parser->tokens->count &&
+            parser->tokens->items[
+                parser->current + 1
+            ].type == TOKEN_IF) {
 
-    ASTNode *node = ast_create(
-        AST_ELSE_IF,
-        NULL
-    );
+            ASTNode *else_if =
+                parse_else_if(parser);
 
-    if (node == NULL) {
-        return NULL;
+            if (else_if == NULL) {
+                ast_free(node);
+                return NULL;
+            }
+
+            ast_add_child(
+                node,
+                else_if
+            );
+
+            continue;
+        }
+
+        ASTNode *else_node =
+            parse_else(parser);
+
+        if (else_node == NULL) {
+            ast_free(node);
+            return NULL;
+        }
+
+        ast_add_child(
+            node,
+            else_node
+        );
+
+        break;
     }
 
-    ASTNode *condition =
-        parse_condition(parser);
-
-    if (condition == NULL) {
-        ast_free(node);
-        return NULL;
+    if (check(parser, TOKEN_SEMICOLON)) {
+        advance_parser(parser);
     }
-
-    ast_add_child(
-        node,
-        condition
-    );
-
-    if (!expect(
-            parser,
-            TOKEN_COMMA,
-            "expected ',' after condition")) {
-
-        ast_free(node);
-        return NULL;
-    }
-
-    ASTNode *body =
-        parse_branch_body(parser);
-
-    if (body == NULL) {
-        ast_free(node);
-        return NULL;
-    }
-
-    ast_add_child(
-        node,
-        body
-    );
-
-    return node;
-}
-
-static ASTNode *parse_else(Parser *parser)
-{
-    advance_parser(parser);
-
-    ASTNode *node = ast_create(
-        AST_ELSE,
-        NULL
-    );
-
-    if (node == NULL) {
-        return NULL;
-    }
-
-    ASTNode *body =
-        parse_branch_body(parser);
-
-    if (body == NULL) {
-        ast_free(node);
-        return NULL;
-    }
-
-    ast_add_child(
-        node,
-        body
-    );
 
     return node;
 }
@@ -1159,50 +1172,6 @@ static ASTNode *parse_logic(Parser *parser)
                 if_node
             );
 
-            while (check(parser, TOKEN_ELSE)) {
-
-                if (parser->current + 1 <
-                    parser->tokens->count &&
-                    parser->tokens->items[
-                        parser->current + 1
-                    ].type == TOKEN_IF) {
-
-                    ASTNode *else_if =
-                        parse_else_if(parser);
-
-                    if (else_if == NULL) {
-                        ast_free(logic);
-                        return NULL;
-                    }
-
-                    ast_add_child(
-                        logic,
-                        else_if
-                    );
-                }
-                else {
-
-                    ASTNode *else_node =
-                        parse_else(parser);
-
-                    if (else_node == NULL) {
-                        ast_free(logic);
-                        return NULL;
-                    }
-
-                    ast_add_child(
-                        logic,
-                        else_node
-                    );
-
-                    break;
-                }
-            }
-
-            if (check(parser, TOKEN_SEMICOLON)) {
-                advance_parser(parser);
-            }
-
             continue;
         }
 
@@ -1302,7 +1271,13 @@ static ASTNode *parse_logic(Parser *parser)
 
 static ASTNode *parse_execute(Parser *parser)
 {
-    advance_parser(parser);
+    if (!expect(
+            parser,
+            TOKEN_EXECUTE,
+            "expected 'execute'")) {
+
+        return NULL;
+    }
 
     return ast_create(
         AST_EXECUTE,
