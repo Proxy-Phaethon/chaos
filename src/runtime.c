@@ -5,6 +5,14 @@
 #include <string.h>
 #include <ctype.h>
 
+#define RUNTIME_TERMINATED 2
+
+typedef struct {
+    const char *input;
+    size_t position;
+    RuntimeStateStore *states;
+} ExpressionParser;
+
 static int runtime_evaluate_expression(
     RuntimeStateStore *states,
     const char *expression,
@@ -77,8 +85,7 @@ Runtime *runtime_create(void)
     return runtime;
 }
 
-void runtime_free(
-    Runtime *runtime)
+void runtime_free(Runtime *runtime)
 {
     if (runtime == NULL) {
         return;
@@ -102,9 +109,7 @@ static int runtime_initialize_collection(
         return 1;
     }
 
-    char *contents = malloc(
-        strlen(value) + 1
-    );
+    char *contents = malloc(strlen(value) + 1);
 
     if (contents == NULL) {
         return 0;
@@ -112,10 +117,7 @@ static int runtime_initialize_collection(
 
     strcpy(contents, value);
 
-    char *item = strtok(
-        contents,
-        ","
-    );
+    char *item = strtok(contents, ",");
 
     while (item != NULL) {
 
@@ -144,10 +146,7 @@ static int runtime_initialize_collection(
             item++;
         }
 
-        if (!runtime_state_push(
-                state,
-                item)) {
-
+        if (!runtime_state_push(state, item)) {
             free(contents);
             return 0;
         }
@@ -177,9 +176,7 @@ int runtime_execute_register(
         const ASTNode *state =
             register_node->children[i];
 
-        if (state->type !=
-            AST_STATE_DECLARATION) {
-
+        if (state->type != AST_STATE_DECLARATION) {
             continue;
         }
 
@@ -228,44 +225,44 @@ int runtime_execute_register(
             return 0;
         }
 
-       char evaluated_value[64];
+        char evaluated_value[64];
 
-if (is_expression) {
+        if (is_expression) {
 
-    double result;
+            double result;
 
-    if (!runtime_evaluate_expression(
-            runtime->states,
-            value,
-            &result)) {
+            if (!runtime_evaluate_expression(
+                    runtime->states,
+                    value,
+                    &result)) {
 
-        fprintf(
-            stderr,
-            "Runtime error: could not evaluate expression for state '%s'\n",
-            name
-        );
+                fprintf(
+                    stderr,
+                    "Runtime error: could not evaluate expression for state '%s'\n",
+                    name
+                );
 
-        return 0;
-    }
+                return 0;
+            }
 
-    snprintf(
-        evaluated_value,
-        sizeof(evaluated_value),
-        "%.15g",
-        result
-    );
+            snprintf(
+                evaluated_value,
+                sizeof(evaluated_value),
+                "%.15g",
+                result
+            );
 
-    value = evaluated_value;
-}
+            value = evaluated_value;
+        }
 
-RuntimeValueType type;
+        RuntimeValueType type;
 
-if (data_type != NULL) {
-    type = runtime_data_type(data_type);
-}
-else {
-    type = runtime_scalar_type(value);
-}
+        if (data_type != NULL) {
+            type = runtime_data_type(data_type);
+        }
+        else {
+            type = runtime_scalar_type(value);
+        }
 
         RuntimeState *runtime_state =
             runtime_state_create(
@@ -351,20 +348,10 @@ static int runtime_execute_action(
             return 0;
         }
 
-        if (!runtime_state_push(
-                state,
-                value->value)) {
-
-            fprintf(
-                stderr,
-                "Runtime error: could not push into '%s'\n",
-                state->name
-            );
-
-            return 0;
-        }
-
-        return 1;
+        return runtime_state_push(
+            state,
+            value->value
+        );
     }
 
     if (action->type == AST_POP) {
@@ -401,23 +388,13 @@ int runtime_execute_data_structure_operation(
     const ASTNode *operation)
 {
     if (runtime == NULL ||
-        operation == NULL) {
-
-        return 0;
-    }
-
-    if (operation->type !=
-        AST_DATA_STRUCTURE_OPERATION) {
+        operation == NULL ||
+        operation->type != AST_DATA_STRUCTURE_OPERATION) {
 
         return 0;
     }
 
     if (operation->value == NULL) {
-        fprintf(
-            stderr,
-            "Runtime error: data structure has no name\n"
-        );
-
         return 0;
     }
 
@@ -453,12 +430,6 @@ int runtime_execute_data_structure_operation(
     }
 
     if (type_name == NULL) {
-        fprintf(
-            stderr,
-            "Runtime error: data structure operation for '%s' has no type\n",
-            state->name
-        );
-
         return 0;
     }
 
@@ -466,16 +437,6 @@ int runtime_execute_data_structure_operation(
         runtime_data_type(type_name);
 
     if (state->value.type != expected_type) {
-        fprintf(
-            stderr,
-            "Runtime error: type mismatch for state '%s': operation expects %s, state is %s\n",
-            state->name,
-            type_name,
-            runtime_value_type_name(
-                state->value.type
-            )
-        );
-
         return 0;
     }
 
@@ -492,7 +453,6 @@ int runtime_execute_data_structure_operation(
 
         if (child->type != AST_PUSH &&
             child->type != AST_POP) {
-
             continue;
         }
 
@@ -513,11 +473,9 @@ int runtime_execute_constant(
 {
     (void)runtime;
 
-    if (constant == NULL) {
-        return 0;
-    }
+    if (constant == NULL ||
+        constant->child_count == 0) {
 
-    if (constant->child_count == 0) {
         return 0;
     }
 
@@ -534,6 +492,272 @@ int runtime_execute_constant(
     return 1;
 }
 
+int runtime_evaluate_condition(
+    Runtime *runtime,
+    const ASTNode *condition)
+{
+    if (runtime == NULL ||
+        condition == NULL ||
+        condition->value == NULL) {
+
+        return -1;
+    }
+
+    double result;
+
+    if (!runtime_evaluate_expression(
+            runtime->states,
+            condition->value,
+            &result)) {
+
+        return -1;
+    }
+
+    return result != 0.0;
+}
+
+static int runtime_execute_node(
+    Runtime *runtime,
+    const ASTNode *node);
+
+static int runtime_execute_branch_body(
+    Runtime *runtime,
+    const ASTNode *branch)
+{
+    for (size_t i = 1;
+         i < branch->child_count;
+         i++) {
+
+        int result =
+            runtime_execute_node(
+                runtime,
+                branch->children[i]
+            );
+
+        if (result == 0 ||
+            result == RUNTIME_TERMINATED) {
+
+            return result;
+        }
+    }
+
+    return 1;
+}
+
+int runtime_execute_if(
+    Runtime *runtime,
+    const ASTNode *if_node)
+{
+    if (runtime == NULL ||
+        if_node == NULL ||
+        if_node->type != AST_IF) {
+
+        return 0;
+    }
+
+    if (if_node->child_count == 0) {
+        return 0;
+    }
+
+    int condition =
+        runtime_evaluate_condition(
+            runtime,
+            if_node->children[0]
+        );
+
+    if (condition < 0) {
+        return 0;
+    }
+
+    if (!condition) {
+        return 1;
+    }
+
+    return runtime_execute_branch_body(
+        runtime,
+        if_node
+    );
+}
+
+int runtime_execute_else_if(
+    Runtime *runtime,
+    const ASTNode *else_if_node)
+{
+    if (runtime == NULL ||
+        else_if_node == NULL ||
+        else_if_node->type != AST_ELSE_IF) {
+
+        return 0;
+    }
+
+    if (else_if_node->child_count == 0) {
+        return 0;
+    }
+
+    int condition =
+        runtime_evaluate_condition(
+            runtime,
+            else_if_node->children[0]
+        );
+
+    if (condition < 0) {
+        return 0;
+    }
+
+    if (!condition) {
+        return 1;
+    }
+
+    return runtime_execute_branch_body(
+        runtime,
+        else_if_node
+    );
+}
+
+int runtime_execute_else(
+    Runtime *runtime,
+    const ASTNode *else_node)
+{
+    if (runtime == NULL ||
+        else_node == NULL ||
+        else_node->type != AST_ELSE) {
+
+        return 0;
+    }
+
+    for (size_t i = 0;
+         i < else_node->child_count;
+         i++) {
+
+        int result =
+            runtime_execute_node(
+                runtime,
+                else_node->children[i]
+            );
+
+        if (result == 0 ||
+            result == RUNTIME_TERMINATED) {
+
+            return result;
+        }
+    }
+
+    return 1;
+}
+
+int runtime_execute_terminate(
+    Runtime *runtime,
+    const ASTNode *terminate_node)
+{
+    (void)runtime;
+    (void)terminate_node;
+
+    return RUNTIME_TERMINATED;
+}
+
+static int runtime_execute_conditional_chain(
+    Runtime *runtime,
+    const ASTNode *logic_node,
+    size_t *index)
+{
+    int branch_selected = 0;
+
+    while (*index < logic_node->child_count) {
+
+        const ASTNode *branch =
+            logic_node->children[*index];
+
+        if (branch->type == AST_IF) {
+
+            int condition =
+                runtime_evaluate_condition(
+                    runtime,
+                    branch->children[0]
+                );
+
+            if (condition < 0) {
+                return 0;
+            }
+
+            if (condition) {
+                int result =
+                    runtime_execute_branch_body(
+                        runtime,
+                        branch
+                    );
+
+                if (result == 0 ||
+                    result == RUNTIME_TERMINATED) {
+                    return result;
+                }
+
+                branch_selected = 1;
+                (*index)++;
+                break;
+            }
+        }
+        else if (branch->type == AST_ELSE_IF) {
+
+            if (!branch_selected) {
+
+                int condition =
+                    runtime_evaluate_condition(
+                        runtime,
+                        branch->children[0]
+                    );
+
+                if (condition < 0) {
+                    return 0;
+                }
+
+                if (condition) {
+
+                    int result =
+                        runtime_execute_branch_body(
+                            runtime,
+                            branch
+                        );
+
+                    if (result == 0 ||
+                        result == RUNTIME_TERMINATED) {
+                        return result;
+                    }
+
+                    branch_selected = 1;
+                    (*index)++;
+                    break;
+                }
+            }
+        }
+        else if (branch->type == AST_ELSE) {
+
+            if (!branch_selected) {
+
+                int result =
+                    runtime_execute_else(
+                        runtime,
+                        branch
+                    );
+
+                if (result == 0 ||
+                    result == RUNTIME_TERMINATED) {
+                    return result;
+                }
+            }
+
+            (*index)++;
+            break;
+        }
+        else {
+            break;
+        }
+
+        (*index)++;
+    }
+
+    return 1;
+}
+
 int runtime_execute_logic(
     Runtime *runtime,
     const ASTNode *logic_node)
@@ -544,51 +768,111 @@ int runtime_execute_logic(
         return 0;
     }
 
-    for (size_t i = 0;
-         i < logic_node->child_count;
-         i++) {
+    size_t i = 0;
+
+    while (i < logic_node->child_count) {
 
         const ASTNode *child =
             logic_node->children[i];
 
-        switch (child->type) {
+        if (child->type == AST_IF) {
 
-            case AST_CONSTANT:
-                if (!runtime_execute_constant(
-                        runtime,
-                        child)) {
+            int result =
+                runtime_execute_conditional_chain(
+                    runtime,
+                    logic_node,
+                    &i
+                );
 
-                    return 0;
-                }
-                break;
+            if (result == 0 ||
+                result == RUNTIME_TERMINATED) {
+                return result;
+            }
 
-            case AST_DATA_STRUCTURE_OPERATION:
-                if (!runtime_execute_data_structure_operation(
-                        runtime,
-                        child)) {
-
-                    return 0;
-                }
-                break;
-
-            case AST_EXPRESSION:
-            case AST_TRANSITION:
-            case AST_CONTEXT:
-            case AST_RULE:
-            case AST_IF:
-            case AST_ELSE_IF:
-            case AST_ELSE:
-            case AST_CONTRACT_CALL:
-            case AST_RESULT:
-            case AST_TERMINATE:
-                break;
-
-            default:
-                break;
+            continue;
         }
+
+        int result =
+            runtime_execute_node(
+                runtime,
+                child
+            );
+
+        if (result == 0 ||
+            result == RUNTIME_TERMINATED) {
+
+            return result;
+        }
+
+        i++;
     }
 
     return 1;
+}
+
+static int runtime_execute_node(
+    Runtime *runtime,
+    const ASTNode *node)
+{
+    if (runtime == NULL ||
+        node == NULL) {
+
+        return 0;
+    }
+
+    switch (node->type) {
+
+        case AST_LOGIC:
+            return runtime_execute_logic(
+                runtime,
+                node
+            );
+
+        case AST_CONSTANT:
+            return runtime_execute_constant(
+                runtime,
+                node
+            );
+
+        case AST_DATA_STRUCTURE_OPERATION:
+            return runtime_execute_data_structure_operation(
+                runtime,
+                node
+            );
+
+        case AST_IF:
+            return runtime_execute_if(
+                runtime,
+                node
+            );
+
+        case AST_ELSE_IF:
+            return runtime_execute_else_if(
+                runtime,
+                node
+            );
+
+        case AST_ELSE:
+            return runtime_execute_else(
+                runtime,
+                node
+            );
+
+        case AST_TERMINATE:
+            return runtime_execute_terminate(
+                runtime,
+                node
+            );
+
+        case AST_EXECUTE:
+            return runtime_execute_execute(
+                runtime,
+                node
+            );
+
+        default:
+            return 1;
+    }
 }
 
 int runtime_execute_execute(
@@ -608,12 +892,9 @@ int runtime_execute(
     const ASTNode *program)
 {
     if (runtime == NULL ||
-        program == NULL) {
+        program == NULL ||
+        program->type != AST_PROGRAM) {
 
-        return 0;
-    }
-
-    if (program->type != AST_PROGRAM) {
         return 0;
     }
 
@@ -624,37 +905,31 @@ int runtime_execute(
         const ASTNode *node =
             program->children[i];
 
-        switch (node->type) {
+        int result;
 
-            case AST_REGISTER:
-                if (!runtime_execute_register(
-                        runtime,
-                        node)) {
+        if (node->type == AST_REGISTER) {
 
-                    return 0;
-                }
-                break;
+            result =
+                runtime_execute_register(
+                    runtime,
+                    node
+                );
 
-            case AST_LOGIC:
-                if (!runtime_execute_logic(
-                        runtime,
-                        node)) {
+        }
+        else {
+            result =
+                runtime_execute_node(
+                    runtime,
+                    node
+                );
+        }
 
-                    return 0;
-                }
-                break;
+        if (result == 0) {
+            return 0;
+        }
 
-            case AST_EXECUTE:
-                if (!runtime_execute_execute(
-                        runtime,
-                        node)) {
-
-                    return 0;
-                }
-                break;
-
-            default:
-                break;
+        if (result == RUNTIME_TERMINATED) {
+            return 1;
         }
     }
 
@@ -673,11 +948,7 @@ void runtime_print_state(
     );
 }
 
-typedef struct {
-    const char *input;
-    size_t position;
-    RuntimeStateStore *states;
-} ExpressionParser;
+/* Expression parser */
 
 static void expression_skip_spaces(
     ExpressionParser *parser)
@@ -715,7 +986,6 @@ static int expression_parse_factor(
         expression_current(parser);
 
     if (current == '+') {
-
         parser->position++;
 
         return expression_parse_factor(
@@ -725,7 +995,6 @@ static int expression_parse_factor(
     }
 
     if (current == '-') {
-
         parser->position++;
 
         if (!expression_parse_factor(
@@ -752,12 +1021,6 @@ static int expression_parse_factor(
         }
 
         if (expression_current(parser) != ')') {
-
-            fprintf(
-                stderr,
-                "Runtime error: expected ')' in expression\n"
-            );
-
             return 0;
         }
 
@@ -781,11 +1044,6 @@ static int expression_parse_factor(
         if (end ==
             parser->input +
                 parser->position) {
-
-            fprintf(
-                stderr,
-                "Runtime error: invalid number in expression\n"
-            );
 
             return 0;
         }
@@ -819,7 +1077,6 @@ static int expression_parse_factor(
         ) {
 
             if (length < sizeof(name) - 1) {
-
                 name[length++] =
                     parser->input[
                         parser->position
@@ -837,25 +1094,9 @@ static int expression_parse_factor(
                 name
             );
 
-        if (state == NULL) {
-
-            fprintf(
-                stderr,
-                "Runtime error: unknown state '%s' in expression\n",
-                name
-            );
-
-            return 0;
-        }
-
-        if (state->value.type !=
-            RUNTIME_VALUE_NUMBER) {
-
-            fprintf(
-                stderr,
-                "Runtime error: state '%s' is not a number\n",
-                name
-            );
+        if (state == NULL ||
+            state->value.type !=
+                RUNTIME_VALUE_NUMBER) {
 
             return 0;
         }
@@ -871,12 +1112,6 @@ static int expression_parse_factor(
         if (end == state->value.scalar ||
             *end != '\0') {
 
-            fprintf(
-                stderr,
-                "Runtime error: state '%s' contains an invalid number\n",
-                name
-            );
-
             return 0;
         }
 
@@ -884,12 +1119,6 @@ static int expression_parse_factor(
 
         return 1;
     }
-
-    fprintf(
-        stderr,
-        "Runtime error: unexpected character '%c' in expression\n",
-        current
-    );
 
     return 0;
 }
@@ -933,12 +1162,6 @@ static int expression_parse_term(
         else {
 
             if (right == 0.0) {
-
-                fprintf(
-                    stderr,
-                    "Runtime error: division by zero\n"
-                );
-
                 return 0;
             }
 
@@ -1107,19 +1330,7 @@ static int runtime_evaluate_expression(
 
     expression_skip_spaces(&parser);
 
-    if (parser.input[
-            parser.position
-        ] != '\0') {
-
-        fprintf(
-            stderr,
-            "Runtime error: unexpected text in expression near '%s'\n",
-            parser.input +
-                parser.position
-        );
-
-        return 0;
-    }
-
-    return 1;
+    return parser.input[
+        parser.position
+    ] == '\0';
 }
