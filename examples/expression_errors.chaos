@@ -1,6 +1,0 @@
-register ('syntax_errors'):
-    state: x = 10,
-    state: bad = {x +},
-;
-
-execute
