@@ -36,7 +36,9 @@ static const Keyword keywords[] = {
 static const size_t keyword_count =
     sizeof(keywords) / sizeof(keywords[0]);
 
-static char *copy_range(const char *start, size_t length)
+static char *copy_range(
+    const char *start,
+    size_t length)
 {
     char *result = malloc(length + 1);
 
@@ -53,7 +55,11 @@ static char *copy_range(const char *start, size_t length)
 static TokenType keyword_type(const char *word)
 {
     for (size_t i = 0; i < keyword_count; i++) {
-        if (strcmp(word, keywords[i].word) == 0) {
+
+        if (strcmp(
+                word,
+                keywords[i].word) == 0) {
+
             return keywords[i].type;
         }
     }
@@ -61,7 +67,7 @@ static TokenType keyword_type(const char *word)
     return TOKEN_IDENTIFIER;
 }
 
-static void add_token(
+static int add_token(
     TokenList *list,
     TokenType type,
     char *value,
@@ -69,6 +75,7 @@ static void add_token(
     size_t column)
 {
     if (list->count >= list->capacity) {
+
         size_t new_capacity =
             list->capacity == 0
             ? 16
@@ -82,7 +89,7 @@ static void add_token(
 
         if (new_items == NULL) {
             free(value);
-            return;
+            return 0;
         }
 
         list->items = new_items;
@@ -95,6 +102,8 @@ static void add_token(
     list->items[list->count].column = column;
 
     list->count++;
+
+    return 1;
 }
 
 static void skip_whitespace(
@@ -103,6 +112,7 @@ static void skip_whitespace(
     size_t *column)
 {
     while (**cursor != '\0') {
+
         if (**cursor == ' ' ||
             **cursor == '\t' ||
             **cursor == '\r') {
@@ -110,18 +120,21 @@ static void skip_whitespace(
             (*cursor)++;
             (*column)++;
         }
+
         else if (**cursor == '\n') {
+
             (*cursor)++;
             (*line)++;
             *column = 1;
         }
+
         else {
             break;
         }
     }
 }
 
-static void lex_identifier(
+static int lex_identifier(
     const char **cursor,
     TokenList *list,
     size_t *line,
@@ -138,17 +151,20 @@ static void lex_identifier(
         (*column)++;
     }
 
-    size_t length = (size_t)(*cursor - start);
+    size_t length =
+        (size_t)(*cursor - start);
 
-    char *value = copy_range(start, length);
+    char *value =
+        copy_range(start, length);
 
     if (value == NULL) {
-        return;
+        return 0;
     }
 
-    TokenType type = keyword_type(value);
+    TokenType type =
+        keyword_type(value);
 
-    add_token(
+    return add_token(
         list,
         type,
         value,
@@ -157,7 +173,7 @@ static void lex_identifier(
     );
 }
 
-static void lex_number(
+static int lex_number(
     const char **cursor,
     TokenList *list,
     size_t *line,
@@ -166,22 +182,35 @@ static void lex_number(
     const char *start = *cursor;
     size_t start_column = *column;
 
+    int decimal_point_seen = 0;
+
     while (isdigit((unsigned char)**cursor) ||
            **cursor == '.') {
+
+        if (**cursor == '.') {
+
+            if (decimal_point_seen) {
+                break;
+            }
+
+            decimal_point_seen = 1;
+        }
 
         (*cursor)++;
         (*column)++;
     }
 
-    size_t length = (size_t)(*cursor - start);
+    size_t length =
+        (size_t)(*cursor - start);
 
-    char *value = copy_range(start, length);
+    char *value =
+        copy_range(start, length);
 
     if (value == NULL) {
-        return;
+        return 0;
     }
 
-    add_token(
+    return add_token(
         list,
         TOKEN_NUMBER,
         value,
@@ -190,12 +219,13 @@ static void lex_number(
     );
 }
 
-static void lex_string(
+static int lex_string(
     const char **cursor,
     TokenList *list,
     size_t *line,
     size_t *column)
 {
+    size_t start_line = *line;
     size_t start_column = *column;
 
     (*cursor)++;
@@ -217,34 +247,52 @@ static void lex_string(
         (*cursor)++;
     }
 
-    size_t length = (size_t)(*cursor - start);
+    if (**cursor != '\'') {
 
-    char *value = copy_range(start, length);
+        fprintf(
+            stderr,
+            "Lexer error at %zu:%zu: "
+            "unterminated string\n",
+            start_line,
+            start_column
+        );
+
+        return 0;
+    }
+
+    size_t length =
+        (size_t)(*cursor - start);
+
+    char *value =
+        copy_range(start, length);
 
     if (value == NULL) {
-        return;
+        return 0;
     }
 
-    add_token(
-        list,
-        TOKEN_STRING,
-        value,
-        *line,
-        start_column
-    );
+    if (!add_token(
+            list,
+            TOKEN_STRING,
+            value,
+            start_line,
+            start_column)) {
 
-    if (**cursor == '\'') {
-        (*cursor)++;
-        (*column)++;
+        return 0;
     }
+
+    (*cursor)++;
+    (*column)++;
+
+    return 1;
 }
 
-static void lex_expression(
+static int lex_expression(
     const char **cursor,
     TokenList *list,
     size_t *line,
     size_t *column)
 {
+    size_t start_line = *line;
     size_t start_column = *column;
 
     (*cursor)++;
@@ -254,11 +302,15 @@ static void lex_expression(
 
     int depth = 1;
 
-    while (**cursor != '\0' && depth > 0) {
+    while (**cursor != '\0' &&
+           depth > 0) {
+
         if (**cursor == '{') {
             depth++;
         }
+
         else if (**cursor == '}') {
+
             depth--;
 
             if (depth == 0) {
@@ -277,34 +329,53 @@ static void lex_expression(
         (*cursor)++;
     }
 
-    size_t length = (size_t)(*cursor - start);
+    if (**cursor != '}') {
+
+        fprintf(
+            stderr,
+            "Lexer error at %zu:%zu: "
+            "unterminated expression\n",
+            start_line,
+            start_column
+        );
+
+        return 0;
+    }
+
+    size_t length =
+        (size_t)(*cursor - start);
 
     while (length > 0 &&
-           isspace((unsigned char)start[length - 1])) {
+           isspace(
+               (unsigned char)start[length - 1])) {
+
         length--;
     }
 
-    char *value = copy_range(start, length);
+    char *value =
+        copy_range(start, length);
 
     if (value == NULL) {
-        return;
+        return 0;
     }
 
-    add_token(
-        list,
-        TOKEN_EXPRESSION,
-        value,
-        *line,
-        start_column
-    );
+    if (!add_token(
+            list,
+            TOKEN_EXPRESSION,
+            value,
+            start_line,
+            start_column)) {
 
-    if (**cursor == '}') {
-        (*cursor)++;
-        (*column)++;
+        return 0;
     }
+
+    (*cursor)++;
+    (*column)++;
+
+    return 1;
 }
 
-static void lex_symbol(
+static int lex_symbol(
     const char **cursor,
     TokenList *list,
     size_t *line,
@@ -314,21 +385,25 @@ static void lex_symbol(
     size_t start_column = *column;
 
     while (**cursor != '\0' &&
-           strchr("<>!+-*/%&|", **cursor) != NULL) {
+           strchr(
+               "<>!+-*/%&|",
+               **cursor) != NULL) {
 
         (*cursor)++;
         (*column)++;
     }
 
-    size_t length = (size_t)(*cursor - start);
+    size_t length =
+        (size_t)(*cursor - start);
 
-    char *value = copy_range(start, length);
+    char *value =
+        copy_range(start, length);
 
     if (value == NULL) {
-        return;
+        return 0;
     }
 
-    add_token(
+    return add_token(
         list,
         TOKEN_SYMBOL,
         value,
@@ -343,7 +418,8 @@ TokenList *lexer_tokenize(const char *source)
         return NULL;
     }
 
-    TokenList *list = calloc(1, sizeof(TokenList));
+    TokenList *list =
+        calloc(1, sizeof(TokenList));
 
     if (list == NULL) {
         return NULL;
@@ -355,6 +431,7 @@ TokenList *lexer_tokenize(const char *source)
     size_t column = 1;
 
     while (*cursor != '\0') {
+
         skip_whitespace(
             &cursor,
             &line,
@@ -370,56 +447,77 @@ TokenList *lexer_tokenize(const char *source)
         if (isalpha((unsigned char)*cursor) ||
             *cursor == '_') {
 
-            lex_identifier(
-                &cursor,
-                list,
-                &line,
-                &column
-            );
+            if (!lex_identifier(
+                    &cursor,
+                    list,
+                    &line,
+                    &column)) {
+
+                lexer_free(list);
+                return NULL;
+            }
 
             continue;
         }
 
         if (isdigit((unsigned char)*cursor)) {
-            lex_number(
-                &cursor,
-                list,
-                &line,
-                &column
-            );
+
+            if (!lex_number(
+                    &cursor,
+                    list,
+                    &line,
+                    &column)) {
+
+                lexer_free(list);
+                return NULL;
+            }
 
             continue;
         }
 
         if (*cursor == '\'') {
-            lex_string(
-                &cursor,
-                list,
-                &line,
-                &column
-            );
+
+            if (!lex_string(
+                    &cursor,
+                    list,
+                    &line,
+                    &column)) {
+
+                lexer_free(list);
+                return NULL;
+            }
 
             continue;
         }
 
         if (*cursor == '{') {
-            lex_expression(
-                &cursor,
-                list,
-                &line,
-                &column
-            );
+
+            if (!lex_expression(
+                    &cursor,
+                    list,
+                    &line,
+                    &column)) {
+
+                lexer_free(list);
+                return NULL;
+            }
 
             continue;
         }
 
-        if (strchr("<>!+-*/%&|", *cursor) != NULL) {
-            lex_symbol(
-                &cursor,
-                list,
-                &line,
-                &column
-            );
+        if (strchr(
+                "<>!+-*/%&|",
+                *cursor) != NULL) {
+
+            if (!lex_symbol(
+                    &cursor,
+                    list,
+                    &line,
+                    &column)) {
+
+                lexer_free(list);
+                return NULL;
+            }
 
             continue;
         }
@@ -427,6 +525,7 @@ TokenList *lexer_tokenize(const char *source)
         TokenType type;
 
         switch (*cursor) {
+
             case '(':
                 type = TOKEN_LPAREN;
                 break;
@@ -452,6 +551,7 @@ TokenList *lexer_tokenize(const char *source)
                 break;
 
             default:
+
                 fprintf(
                     stderr,
                     "Lexer error at %zu:%zu: "
@@ -461,30 +561,35 @@ TokenList *lexer_tokenize(const char *source)
                     *cursor
                 );
 
-                cursor++;
-                column++;
-                continue;
+                lexer_free(list);
+                return NULL;
         }
 
-        add_token(
-            list,
-            type,
-            NULL,
-            line,
-            token_column
-        );
+        if (!add_token(
+                list,
+                type,
+                NULL,
+                line,
+                token_column)) {
+
+            lexer_free(list);
+            return NULL;
+        }
 
         cursor++;
         column++;
     }
 
-    add_token(
-        list,
-        TOKEN_EOF,
-        NULL,
-        line,
-        column
-    );
+    if (!add_token(
+            list,
+            TOKEN_EOF,
+            NULL,
+            line,
+            column)) {
+
+        lexer_free(list);
+        return NULL;
+    }
 
     return list;
 }
@@ -495,7 +600,10 @@ void lexer_free(TokenList *tokens)
         return;
     }
 
-    for (size_t i = 0; i < tokens->count; i++) {
+    for (size_t i = 0;
+         i < tokens->count;
+         i++) {
+
         free(tokens->items[i].value);
     }
 
@@ -506,39 +614,98 @@ void lexer_free(TokenList *tokens)
 const char *token_type_name(TokenType type)
 {
     switch (type) {
-        case TOKEN_EOF:         return "EOF";
-        case TOKEN_IDENTIFIER:  return "IDENTIFIER";
-        case TOKEN_SYMBOL:      return "SYMBOL";
-        case TOKEN_NUMBER:      return "NUMBER";
-        case TOKEN_STRING:      return "STRING";
-        case TOKEN_EXPRESSION:  return "EXPRESSION";
 
-        case TOKEN_LOGIC:       return "LOGIC";
-        case TOKEN_IF:          return "IF";
-        case TOKEN_ELSE:        return "ELSE";
-        case TOKEN_STATE:       return "STATE";
-        case TOKEN_TRANSITION:  return "TRANSITION";
-        case TOKEN_CONTEXT:     return "CONTEXT";
-        case TOKEN_RULE:        return "RULE";
-        case TOKEN_EXECUTE:     return "EXECUTE";
-        case TOKEN_RESULT:      return "RESULT";
-        case TOKEN_TERMINATE:   return "TERMINATE";
-        case TOKEN_REGISTER:    return "REGISTER";
-        case TOKEN_CONSTANT:    return "CONSTANT";
-        case TOKEN_PUSH:        return "PUSH";
-        case TOKEN_POP:         return "POP";
-        case TOKEN_LIST:        return "LIST";
-        case TOKEN_QUEUE:       return "QUEUE";
-        case TOKEN_STACK:       return "STACK";
-        case TOKEN_BRANCH:      return "BRANCH";
+        case TOKEN_EOF:
+            return "EOF";
 
-        case TOKEN_LPAREN:      return "LPAREN";
-        case TOKEN_RPAREN:      return "RPAREN";
-        case TOKEN_COLON:       return "COLON";
-        case TOKEN_COMMA:       return "COMMA";
-        case TOKEN_SEMICOLON:   return "SEMICOLON";
-        case TOKEN_EQUALS:      return "EQUALS";
+        case TOKEN_IDENTIFIER:
+            return "IDENTIFIER";
 
-        default:                return "UNKNOWN";
+        case TOKEN_SYMBOL:
+            return "SYMBOL";
+
+        case TOKEN_NUMBER:
+            return "NUMBER";
+
+        case TOKEN_STRING:
+            return "STRING";
+
+        case TOKEN_EXPRESSION:
+            return "EXPRESSION";
+
+        case TOKEN_LOGIC:
+            return "LOGIC";
+
+        case TOKEN_IF:
+            return "IF";
+
+        case TOKEN_ELSE:
+            return "ELSE";
+
+        case TOKEN_STATE:
+            return "STATE";
+
+        case TOKEN_TRANSITION:
+            return "TRANSITION";
+
+        case TOKEN_CONTEXT:
+            return "CONTEXT";
+
+        case TOKEN_RULE:
+            return "RULE";
+
+        case TOKEN_EXECUTE:
+            return "EXECUTE";
+
+        case TOKEN_RESULT:
+            return "RESULT";
+
+        case TOKEN_TERMINATE:
+            return "TERMINATE";
+
+        case TOKEN_REGISTER:
+            return "REGISTER";
+
+        case TOKEN_CONSTANT:
+            return "CONSTANT";
+
+        case TOKEN_LIST:
+            return "LIST";
+
+        case TOKEN_QUEUE:
+            return "QUEUE";
+
+        case TOKEN_STACK:
+            return "STACK";
+
+        case TOKEN_BRANCH:
+            return "BRANCH";
+
+        case TOKEN_PUSH:
+            return "PUSH";
+
+        case TOKEN_POP:
+            return "POP";
+
+        case TOKEN_LPAREN:
+            return "LPAREN";
+
+        case TOKEN_RPAREN:
+            return "RPAREN";
+
+        case TOKEN_COLON:
+            return "COLON";
+
+        case TOKEN_COMMA:
+            return "COMMA";
+
+        case TOKEN_SEMICOLON:
+            return "SEMICOLON";
+
+        case TOKEN_EQUALS:
+            return "EQUALS";
+
+        default:
+            return "UNKNOWN";
     }
 }
