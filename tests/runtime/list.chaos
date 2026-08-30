@@ -1,0 +1,10 @@
+register:
+    state: fruits, list = 'apple', 'banana', 'blueberry';
+
+logic integer > 0;
+    list fruits (push 'strawberry') (push 'raspberry') (pop)
+
+register:
+    state: integer = 1;
+
+execute

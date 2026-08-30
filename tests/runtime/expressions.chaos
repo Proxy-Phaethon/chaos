@@ -1,0 +1,8 @@
+register:
+    state: integer = 42,
+    state: expression = integer + 8;
+
+logic integer > 0;
+    constant: expression evaluated
+
+execute

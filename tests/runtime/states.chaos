@@ -1,0 +1,6 @@
+register:
+    state: integer = 42,
+    state: decimal = 3.14159,
+    state: name = "Zia";
+
+execute
