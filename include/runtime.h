@@ -12,11 +12,6 @@ typedef enum {
 
 typedef struct {
     RuntimeStateStore *states;
-
-    /*
-     * Name of the currently active execution state.
-     * Used by transitions and control flow.
-     */
     char *current_state;
 } Runtime;
 
