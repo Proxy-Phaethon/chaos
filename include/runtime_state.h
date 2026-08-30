@@ -27,18 +27,15 @@ typedef struct RuntimeValue {
     char *scalar;
 
     char **items;
-
     size_t item_count;
     size_t item_capacity;
 
     RuntimeBranchNode *branch_root;
     size_t branch_count;
-
 } RuntimeValue;
 
 typedef struct RuntimeState {
     char *name;
-
     RuntimeValue value;
 
     struct RuntimeState *next;
