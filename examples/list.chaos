@@ -1,7 +1,0 @@
-register:
-state: fruits, list = 'apple', 'banana', 'blueberry';
-
-logic true;
-list fruits (push 'strawberry') (push 'raspberry') (pop)
-
-execute

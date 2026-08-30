@@ -1,7 +1,0 @@
-register:
-state: history, stack = 'older', 'old';
-
-logic true;
-stack history (push 'newest') (pop)
-
-execute

@@ -1,7 +1,0 @@
-register:
-state: tree, branch = '50', '25', '75', '10', '30';
-
-logic true;
-branch tree (push 60) (push 5)
-
-execute

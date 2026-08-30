@@ -1,15 +1,11 @@
-register: everything
+register: structures
     state: integer = 42,
-    state: decimal = 3.14159,
-    state: name = "Zia",
-    state: expression = integer + 8,
     state: fruits, list = 'apple', 'banana', 'blueberry',
     state: waiting, queue = 'first', 'second', 'third',
     state: history, stack = 'older', 'old',
     state: tree, branch = '50', '25', '75', '10', '30';
 
 logic {integer > 0};
-    constant: integer is positive,
     list fruits (push 'strawberry')
     (push 'raspberry')
     (pop),
@@ -18,7 +14,6 @@ logic {integer > 0};
     stack history (push 'newest')
     (pop),
     branch tree (push 60)
-    (push 5),
-    transition none;
+    (push 5);
 
 execute
