@@ -14,18 +14,31 @@ typedef enum {
     RUNTIME_VALUE_BRANCH
 } RuntimeValueType;
 
+typedef struct RuntimeBranchNode {
+    char *value;
+
+    struct RuntimeBranchNode *left;
+    struct RuntimeBranchNode *right;
+} RuntimeBranchNode;
+
 typedef struct RuntimeValue {
     RuntimeValueType type;
 
     char *scalar;
 
     char **items;
+
     size_t item_count;
     size_t item_capacity;
+
+    RuntimeBranchNode *branch_root;
+    size_t branch_count;
+
 } RuntimeValue;
 
 typedef struct RuntimeState {
     char *name;
+
     RuntimeValue value;
 
     struct RuntimeState *next;
@@ -41,7 +54,7 @@ void runtime_state_store_free(
     RuntimeStateStore *store
 );
 
-void runtime_state_store_add(
+int runtime_state_store_add(
     RuntimeStateStore *store,
     RuntimeState *state
 );
@@ -74,6 +87,19 @@ RuntimeState *runtime_state_create(
     const char *value
 );
 
+void runtime_state_free(
+    RuntimeState *state
+);
+
+int runtime_state_set_value(
+    RuntimeState *state,
+    const char *value
+);
+
+const char *runtime_state_get_value(
+    const RuntimeState *state
+);
+
 int runtime_state_push(
     RuntimeState *state,
     const char *value
@@ -81,6 +107,24 @@ int runtime_state_push(
 
 char *runtime_state_pop(
     RuntimeState *state
+);
+
+size_t runtime_state_count(
+    const RuntimeState *state
+);
+
+int runtime_branch_insert(
+    RuntimeState *state,
+    const char *value
+);
+
+int runtime_branch_contains(
+    const RuntimeState *state,
+    const char *value
+);
+
+void runtime_branch_print(
+    const RuntimeState *state
 );
 
 void runtime_state_print(
