@@ -1,224 +1,680 @@
 # Chaos v1 Syntax
 
-This document describes the syntax accepted by the Chaos v1 lexer and parser.
+## Overview
 
-## Program Structure
+Chaos programs are written as plain-text `.chaos` files.
 
-A Chaos program is a sequence of top-level structures:
+Chaos v1 uses a small declarative syntax built around state registration, logic blocks, data-structure operations, conditions, transitions, and execution.
+
+A typical program has three main parts:
 
 ```text
-register
-logic
-execute
+register ...
+logic ...
+execute ...
 ```
 
-The parser accepts these structures in source order and stores them under a `PROGRAM` AST node.
+A minimal program can be:
+
+```chaos id="s8r5kj"
+register:
+    state: integer = 42;
+
+logic integer > 0;
+    constant: integer is positive;
+
+execute;
+```
+
+The lexer converts this source into tokens, and the parser converts those tokens into an AST.
+
+## Keywords
+
+Chaos v1 recognizes the following language keywords:
+
+```text id="u5ml6b"
+register
+state
+logic
+constant
+if
+else
+transition
+context
+rule
+execute
+push
+pop
+list
+queue
+stack
+branch
+result
+terminate
+```
+
+These keywords have special meaning to the lexer and parser.
+
+## Identifiers
+
+Identifiers are names used for states and other references.
+
+Examples:
+
+```chaos id="zdd0lm"
+integer
+decimal
+name
+fruits
+waiting
+history
+tree
+```
+
+An identifier can be used to refer to runtime state:
+
+```chaos id="6b9q3e"
+integer > 0
+```
+
+State names must be unique within a runtime state store.
 
 ## Values
 
-Chaos v1 recognizes four value forms.
+Chaos v1 supports several forms of values.
 
-Numbers:
+### Numbers
 
-```chaos
+Numeric values can be written directly:
+
+```chaos id="c0rh78"
 42
 3.14159
+-10
 ```
 
-Strings:
+Numbers are represented by the runtime as numeric values when a state is created.
 
-```chaos
-'Chaos'
+### Strings
+
+Strings are enclosed in quotation marks:
+
+```chaos id="x7ps2e"
+"Chaos"
+"hello world"
+"apple"
 ```
 
-Identifiers:
+The lexer removes the surrounding quotation marks before the value reaches later stages.
 
-```chaos
-current-state
+### Identifiers
+
+An identifier can also appear as a value:
+
+```chaos id="8d7g8w"
+integer
 ```
 
-Expressions:
+This is preserved as a state value/reference by the parser. Runtime interpretation depends on the construct in which it appears.
 
-```chaos
-{x + 1 = 2}
+### Expressions
+
+Expressions are represented as expression tokens and AST expression nodes.
+
+For example:
+
+```chaos id="0fz7kj"
+{integer + 8}
 ```
 
-Expressions are stored as expression text. The v1 runtime preserves them as state values or AST conditions.
+or in contexts where the lexer recognizes the expression directly:
 
-## Registers
-
-A register contains state declarations and ends with a semicolon.
-
-```chaos
-register ('main'):
-
-    state: integer = 42,
-    state: name = 'Chaos';
+```text id="f8q9vp"
+integer + 8
 ```
 
-The register name is optional:
+Expressions are preserved by the parser as `AST_EXPRESSION` nodes.
 
-```chaos
-register:
+The v1 runtime provides limited expression semantics. Expression support should therefore be considered one of the boundaries of the current version.
 
-    state: x = 10;
+## State Registration
+
+States are declared using:
+
+```chaos id="o8f4h2"
+state: name = value
 ```
 
-## States
+For example:
 
-A state associates a name with a value:
-
-```chaos
-state: x = 42
+```chaos id="g9n3cl"
+state: integer = 42
+state: decimal = 3.14159
+state: name = "Zia"
 ```
 
-A state may also declare a collection type:
+A state declaration produces an AST structure similar to:
 
-```chaos
-state: fruits, list = {'apple', 'banana'}
+```text id="j6byf5"
+STATE
+├── NAME: integer
+└── VALUE: 42
 ```
 
-Inside a register, state declarations are separated by commas. The final state is followed by the register's semicolon.
+The runtime converts the declaration into a `RuntimeState`.
 
-## Collections
+## Data Structure State
 
-Chaos v1 supports four collection declarations:
+Collection states specify their type after the state name:
 
-```text
+```chaos id="4bq1up"
+state: fruits, list = ...
+state: waiting, queue = ...
+state: history, stack = ...
+state: tree, branch = ...
+```
+
+The supported collection types are:
+
+```text id="1x4a4m"
 list
 queue
 stack
 branch
 ```
 
-Collection states use brace-delimited expression syntax for their initial contents:
+For example:
 
-```chaos
-state: fruits, list = {'apple', 'banana', 'blueberry'}
-state: waiting, queue = {'first', 'second', 'third'}
-state: history, stack = {'older', 'old'}
-state: tree, branch = {'50', '25', '75'}
+```chaos id="n0jj7p"
+register("everything"):
+    state: fruits, list = "apple", "banana", "blueberry",
+    state: waiting, queue = "first", "second", "third",
+    state: history, stack = "older", "old",
+    state: tree, branch = "50", "25", "75";
 ```
 
-The runtime initializes collection contents by splitting the expression text on commas and trimming surrounding single quotes.
+The parser represents the declared type with an `AST_DATA_TYPE` node.
 
-## Collection Operations
+## Register
 
-Collection operation groups appear inside `logic`.
+The `register` construct groups state declarations.
 
-```chaos
-list fruits
-    (push 'strawberry')
-    (push 'raspberry'),
+It may optionally have a name:
+
+```chaos id="p2w6cr"
+register("everything"):
+    state: integer = 42;
 ```
 
-Each operation group begins with the collection type, then the target state name, then one or more parenthesized operations. The group ends with a comma.
+A register without a name is also syntactically possible:
 
-Supported operations:
+```chaos id="n4gq6v"
+register:
+    state: integer = 42;
+```
 
-```text
+The parser creates an `AST_REGISTER` node.
+
+Its child nodes are state declarations.
+
+Conceptually:
+
+```text id="0f8x7y"
+REGISTER
+├── STATE
+├── STATE
+└── STATE
+```
+
+The register itself is primarily a structural grouping mechanism in v1.
+
+## Logic
+
+Logic blocks begin with `logic` followed by a condition:
+
+```chaos id="v3r6tq"
+logic integer > 0;
+```
+
+The condition becomes the first child of the `AST_LOGIC` node.
+
+Statements inside the logic block follow the condition.
+
+For example:
+
+```chaos id="qj3y2e"
+logic integer > 0;
+    constant: integer is positive;
+```
+
+The logic block ends when the parser encounters `execute` or the end of the token stream.
+
+## Constants
+
+Constants are declared inside a logic block:
+
+```chaos id="e9d7k1"
+constant: integer is positive;
+```
+
+The text after `constant:` is stored as the constant's value.
+
+The resulting AST has this structure:
+
+```text id="u6w0yk"
+CONSTANT
+└── VALUE: integer is positive
+```
+
+At runtime, constants are currently printed when executed.
+
+They do not create a separate mutable runtime state.
+
+## Data Structure Operations
+
+Data structures can be modified inside a logic block.
+
+The general form is:
+
+```chaos id="b4p8mz"
+list name
+    (push value)
+    (pop),
+```
+
+The supported operations are:
+
+```text id="h6o4yy"
 push
 pop
 ```
 
-Examples:
+### Push
 
-```chaos
+`push` adds a value to a collection:
+
+```chaos id="7h9x6s"
+list fruits
+    (push "strawberry"),
+```
+
+The parser produces:
+
+```text id="5s5g6r"
+DATA STRUCTURE OPERATION: fruits
+├── TYPE: list
+└── PUSH
+    └── VALUE: strawberry
+```
+
+### Pop
+
+`pop` removes a value from a collection:
+
+```chaos id="g5x0jv"
 queue waiting
-    (push 'fourth')
-    (pop),
-
-stack history
-    (push 'newest')
     (pop),
 ```
 
-## Logic
+The parser produces:
 
-A logic structure starts with an initial condition and a semicolon:
-
-```chaos
-logic {x > 0};
+```text id="g3h1qp"
+DATA STRUCTURE OPERATION: waiting
+├── TYPE: queue
+└── POP
 ```
 
-After that, the parser attaches following logic statements until it reaches `execute` or end of file.
+The runtime determines which element is removed according to the collection type.
 
-Supported logic children:
+## Multiple Operations
 
-```text
-constant
-list operation
-queue operation
-stack operation
-branch operation
-transition
-context/rule
-if / else if / else
+Multiple operations can be applied to the same collection:
+
+```chaos id="j8w5kc"
+list fruits
+    (push "strawberry")
+    (push "raspberry")
+    (pop),
 ```
 
-## Constants
+The operations are represented as multiple children of the data-structure operation node:
 
-A constant stores the tokens between `constant:` and `;` as a constant expression.
-
-```chaos
-constant: x < y;
+```text id="6k9y2w"
+DATA STRUCTURE OPERATION: fruits
+├── TYPE: list
+├── PUSH
+│   └── VALUE: strawberry
+├── PUSH
+│   └── VALUE: raspberry
+└── POP
 ```
 
-The v1 runtime prints constants during logic execution.
+Operations are executed in the order in which they appear.
 
-## Conditional Forms
+## Conditional Statements
 
-Conditional forms are parsed into the AST.
+Chaos v1 supports:
 
-```chaos
-if {x > 10}, ('contract-name' result)
-else if {x > 5}, terminate
-else ('fallback')
+```text id="k2g8vy"
+if
+else if
+else
 ```
 
-The operation after the comma is either a parenthesized contract call or `terminate`.
+The general form is:
 
-## Contract Calls
-
-Contract calls are parsed as parenthesized operations:
-
-```chaos
-('compare' x y)
+```chaos id="1x6qv8"
+if condition, operation
 ```
 
-The first value is the contract name. Additional identifiers, strings, numbers, and `result` tokens are stored as arguments.
+For example:
+
+```chaos id="y8m2tq"
+if integer > 0, (contract)
+```
+
+The exact operation following the condition is parsed according to the operation grammar.
+
+An `if` node can contain:
+
+```text id="1h3c6q"
+IF
+├── condition
+├── operation
+├── ELSE IF
+│   ├── condition
+│   └── operation
+└── ELSE
+    └── operation
+```
+
+This allows an entire conditional chain to be represented by one root `AST_IF` node.
+
+## Else If
+
+An `else if` follows an `if`:
+
+```chaos id="q8j5w0"
+if condition, operation
+else if other_condition, operation
+```
+
+The parser attaches the `AST_ELSE_IF` node to the original `AST_IF`.
+
+## Else
+
+An `else` provides a fallback operation:
+
+```chaos id="c1z5ph"
+if condition, operation
+else operation
+```
+
+The parser represents it as an `AST_ELSE` child of the `AST_IF`.
+
+## Contracts
+
+Contract calls use parentheses containing a contract reference:
+
+```chaos id="m4k9cz"
+("contract")
+```
+
+A contract reference may be a string or identifier.
+
+Arguments can also be supplied:
+
+```chaos id="x3v8qn"
+("contract" value)
+```
+
+The parser creates an `AST_CONTRACT_CALL`.
+
+Contract arguments may be represented by:
+
+```text id="0q5j7r"
+AST_RESULT
+AST_EXPRESSION
+```
+
+depending on the token encountered.
+
+Contract syntax exists in v1's parser and AST model, but the runtime semantics are intentionally limited.
+
+## Results
+
+The `result` keyword can appear inside contract calls.
+
+For example:
+
+```chaos id="q9m5ht"
+("contract" result)
+```
+
+The parser represents this as an `AST_RESULT` node.
+
+Results are part of the v1 language representation but are not a complete general-purpose return-value system.
+
+## Terminate
+
+The `terminate` keyword represents termination:
+
+```chaos id="k5v2z8"
+terminate
+```
+
+The parser creates:
+
+```text id="e4c9x1"
+TERMINATE
+```
+
+The current runtime provides limited semantics for this construct.
 
 ## Transitions
 
-Transitions are parsed inside logic:
+Transitions use the form:
 
-```chaos
-transition ('none');
+```chaos id="b7r4wx"
+transition("reference")
 ```
 
-The transition reference may be a string or identifier.
+The reference can be a string or identifier.
 
-## Contexts and Rules
+For example:
 
-A context pairs an expression with one rule expression:
-
-```chaos
-context {x + 1 = 2},
-rule ('x not equal 0');
+```chaos id="q0x5ns"
+transition("none")
 ```
 
-The parser stores the context expression and the nested rule expression in the AST.
+The parser creates:
+
+```text id="4p6m1k"
+TRANSITION: none
+```
+
+In v1, transitions are represented and executed at a basic level rather than providing a complete state-machine implementation.
+
+## Context and Rules
+
+A context can be declared using:
+
+```chaos id="v6y3qk"
+context condition, rule(condition)
+```
+
+For example:
+
+```chaos id="h8r2mj"
+context integer > 0, rule(integer is positive)
+```
+
+The resulting AST structure is:
+
+```text id="1j4c7n"
+CONTEXT
+├── EXPRESSION: integer > 0
+└── RULE
+    └── EXPRESSION: integer is positive
+```
+
+Context and rule syntax is part of the v1 parser and AST model.
+
+Their runtime behavior remains limited in v1.
 
 ## Execute
 
-`execute` is a top-level structure:
+The `execute` statement marks execution:
 
-```chaos
-execute
+```chaos id="w3k9tp"
+execute;
 ```
 
-The v1 runtime reports `EXECUTE` when this node is reached.
+The parser creates:
+
+```text id="z7m4qc"
+EXECUTE: execute
+```
+
+The runtime responds by executing the parsed program and printing the execution marker.
 
 ## Complete Example
 
-See `examples/all_v1.chaos` for a source file that exercises the v1 vocabulary and runtime behavior together.
+The following demonstrates the major constructs used by the v1 examples:
+
+```chaos id="5j7r2c"
+register("everything"):
+    state: integer = 42,
+    state: decimal = 3.14159,
+    state: name = "Zia",
+    state: expression = {integer + 8},
+    state: fruits, list = "apple", "banana", "blueberry",
+    state: waiting, queue = "first", "second", "third",
+    state: history, stack = "older", "old",
+    state: tree, branch = "50", "25", "75", "10", "30";
+
+logic integer > 0;
+    constant: integer is positive;
+
+    list fruits
+        (push "strawberry")
+        (push "raspberry")
+        (pop),
+
+    queue waiting
+        (push "fourth")
+        (pop),
+
+    stack history
+        (push "newest")
+        (pop),
+
+    branch tree
+        (push "60")
+        (push "5"),
+
+    transition("none");
+
+execute;
+```
+
+The resulting AST is conceptually:
+
+```text id="x8h3qm"
+PROGRAM
+├── REGISTER
+│   ├── STATE
+│   ├── STATE
+│   ├── STATE
+│   ├── STATE
+│   ├── STATE
+│   ├── STATE
+│   ├── STATE
+│   └── STATE
+│
+├── LOGIC
+│   ├── EXPRESSION
+│   ├── CONSTANT
+│   ├── DATA STRUCTURE OPERATION
+│   ├── DATA STRUCTURE OPERATION
+│   ├── DATA STRUCTURE OPERATION
+│   ├── DATA STRUCTURE OPERATION
+│   └── TRANSITION
+│
+└── EXECUTE
+```
+
+## Statement Terminators
+
+Chaos v1 uses semicolons to terminate major statements.
+
+Examples:
+
+```chaos id="y1q6pz"
+constant: integer is positive;
+
+transition("none");
+
+execute;
+```
+
+Commas are used to separate elements in several constructs, including state declarations and data-structure operation statements.
+
+## Syntax and Runtime
+
+The parser determines whether source conforms to the v1 syntax.
+
+The runtime determines what successfully parsed constructs actually do.
+
+This distinction is important.
+
+A construct can therefore be:
+
+```text id="f2q6zy"
+Lexically recognized
+        │
+        ▼
+Successfully parsed
+        │
+        ▼
+Represented in AST
+        │
+        ▼
+Have limited runtime semantics
+```
+
+This applies particularly to constructs such as contracts, contexts, rules, and some expression behavior.
+
+## V1 Syntax Boundary
+
+Chaos v1 intentionally has no syntax for several features normally found in general-purpose languages.
+
+There is currently no general syntax for:
+
+* user-defined functions
+* modules
+* imports
+* classes
+* conventional loops
+* pattern matching
+* a full static type system
+* a standard library
+* arbitrary function definitions
+
+These features are outside the scope of the v1 syntax.
+
+## Syntax Design
+
+Chaos v1 uses a deliberately compact grammar.
+
+Its syntax is intended to make several concepts explicit:
+
+```text id="q6t3mw"
+state       → persistent runtime data
+logic       → conditions and operations
+collection  → structured runtime data
+transition  → state-flow declaration
+execute     → execution boundary
+```
+
+The parser converts these constructs into an AST, allowing the runtime to process them independently of the original source representation.
