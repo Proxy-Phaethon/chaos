@@ -1,0 +1,7 @@
+register:
+state: waiting, queue = 'first', 'second', 'third';
+
+logic true;
+queue waiting (push 'fourth') (pop)
+
+execute

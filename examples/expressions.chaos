@@ -1,0 +1,8 @@
+register:
+state: integer = 42,
+state: result = integer + 8;
+
+logic integer > 0;
+constant: integer is positive
+
+execute

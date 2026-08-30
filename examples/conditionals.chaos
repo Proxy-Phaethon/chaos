@@ -1,0 +1,9 @@
+register:
+state: integer = 42;
+
+logic integer > 0;
+if integer > 100, constant: integer is very large
+else if integer > 50, constant: integer is large
+else constant: integer is positive
+
+execute
