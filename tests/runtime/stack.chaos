@@ -1,8 +1,10 @@
 register:
     state: integer = 1,
-    state: history, stack = 'older', 'old';
+    state: history, stack = {'older', 'old'};
 
-logic integer > 0;
-    stack history (push 'newest') (pop)
+logic {integer > 0};
+    stack history
+        (push 'newest')
+        (pop),
 
 execute

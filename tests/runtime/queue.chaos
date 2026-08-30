@@ -1,8 +1,10 @@
 register:
     state: integer = 1,
-    state: waiting, queue = 'first', 'second', 'third';
+    state: waiting, queue = {'first', 'second', 'third'};
 
-logic integer > 0;
-    queue waiting (push 'fourth') (pop)
+logic {integer > 0};
+    queue waiting
+        (push 'fourth')
+        (pop),
 
 execute

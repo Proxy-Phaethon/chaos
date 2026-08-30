@@ -1,14 +1,24 @@
 register:
     state: integer = 42,
-    state: fruits, list = 'apple', 'banana',
-    state: waiting, queue = 'first', 'second',
-    state: history, stack = 'old', 'older',
-    state: tree, branch = '50', '25', '75';
+    state: fruits, list = {'apple', 'banana'},
+    state: waiting, queue = {'first', 'second'},
+    state: history, stack = {'old', 'older'},
+    state: tree, branch = {'50', '25', '75'};
 
-logic integer > 0;
-    list fruits (push 'orange') (pop)
-    queue waiting (push 'third') (pop)
-    stack history (push 'newest') (pop)
-    branch tree (push 60)
+logic {integer > 0};
+    list fruits
+        (push 'orange')
+        (pop),
+
+    queue waiting
+        (push 'third')
+        (pop),
+
+    stack history
+        (push 'newest')
+        (pop),
+
+    branch tree
+        (push 60),
 
 execute
