@@ -1,22 +1,20 @@
 register ('everything'):
-
     state: integer = 42,
     state: decimal = 3.14159,
     state: name = 'Zia',
-    state: expression = {x + 1 = 2},
-
+    state: expression = {integer + 8},
     state: fruits, list = {'apple', 'banana', 'blueberry'},
     state: waiting, queue = {'first', 'second', 'third'},
     state: history, stack = {'older', 'old'},
     state: tree, branch = {'50', '25', '75', '10', '30'};
 
-logic {x > 0};
-
-    constant: x < y;
+logic {integer > 0};
+    constant: integer is positive;
 
     list fruits
         (push 'strawberry')
-        (push 'raspberry'),
+        (push 'raspberry')
+        (pop),
 
     queue waiting
         (push 'fourth')
@@ -31,8 +29,5 @@ logic {x > 0};
         (push '5'),
 
     transition ('none');
-
-    context {x + 1 = 2},
-    rule ('x not equal 0');
 
 execute
