@@ -9,7 +9,6 @@ static Token *current(Parser *parser)
     return &parser->tokens->items[parser->current];
 }
 
-
 static Token *advance_parser(Parser *parser)
 {
     if (current(parser)->type != TOKEN_EOF) {
@@ -19,12 +18,10 @@ static Token *advance_parser(Parser *parser)
     return &parser->tokens->items[parser->current - 1];
 }
 
-
 static int check(Parser *parser, TokenType type)
 {
     return current(parser)->type == type;
 }
-
 
 static void parser_error(
     Parser *parser,
@@ -53,7 +50,6 @@ static void parser_error(
     parser->had_error = 1;
 }
 
-
 static int expect(
     Parser *parser,
     TokenType type,
@@ -71,13 +67,13 @@ static int expect(
 static ASTNode *parse_value(Parser *parser)
 {
     if (check(parser, TOKEN_EXPRESSION)) {
-    Token *token = advance_parser(parser);
+        Token *token = advance_parser(parser);
 
-    return ast_create(
-        AST_EXPRESSION,
-        token->value
-    );
-}
+        return ast_create(
+            AST_EXPRESSION,
+            token->value
+        );
+    }
 
     if (check(parser, TOKEN_STRING)) {
         Token *token = advance_parser(parser);
@@ -308,7 +304,6 @@ static ASTNode *parse_register(Parser *parser)
         }
     }
 
-
     if (check(parser, TOKEN_COLON)) {
         advance_parser(parser);
     }
@@ -336,7 +331,6 @@ static ASTNode *parse_register(Parser *parser)
 
         break;
     }
-
 
     if (!expect(
             parser,
@@ -400,7 +394,6 @@ static ASTNode *parse_constant(Parser *parser)
         }
     }
 
-
     ASTNode *value = ast_create(
         AST_STATE_VALUE,
         buffer
@@ -415,7 +408,6 @@ static ASTNode *parse_constant(Parser *parser)
         constant,
         value
     );
-
 
     if (!expect(
             parser,
@@ -506,7 +498,6 @@ static ASTNode *parse_data_structure_operation(
             return NULL;
         }
 
-
         ASTNode *operation = NULL;
 
         if (check(parser, TOKEN_PUSH)) {
@@ -563,12 +554,10 @@ static ASTNode *parse_data_structure_operation(
             return NULL;
         }
 
-
         ast_add_child(
             node,
             operation
         );
-
 
         if (!expect(
                 parser,
@@ -624,7 +613,6 @@ static ASTNode *parse_contract_call(Parser *parser)
     if (node == NULL) {
         return NULL;
     }
-
 
     while (!check(parser, TOKEN_RPAREN) &&
            !check(parser, TOKEN_EOF)) {
@@ -684,7 +672,6 @@ static ASTNode *parse_contract_call(Parser *parser)
         }
     }
 
-
     if (!expect(
             parser,
             TOKEN_RPAREN,
@@ -710,7 +697,6 @@ static ASTNode *parse_condition(Parser *parser)
         );
     }
 
-
     if (check(parser, TOKEN_STRING) ||
         check(parser, TOKEN_IDENTIFIER) ||
         check(parser, TOKEN_NUMBER)) {
@@ -724,7 +710,6 @@ static ASTNode *parse_condition(Parser *parser)
         );
     }
 
-
     if (check(parser, TOKEN_RESULT)) {
 
         Token *token =
@@ -735,7 +720,6 @@ static ASTNode *parse_condition(Parser *parser)
             token->value
         );
     }
-
 
     parser_error(
         parser,
@@ -760,6 +744,71 @@ static ASTNode *parse_operation(Parser *parser)
     return parse_contract_call(parser);
 }
 
+static ASTNode *parse_if(Parser *parser);
+
+static ASTNode *parse_branch_body(Parser *parser)
+{
+    ASTNode *body = ast_create(
+        AST_LOGIC,
+        NULL
+    );
+
+    if (body == NULL) {
+        return NULL;
+    }
+
+    while (!check(parser, TOKEN_ELSE) &&
+           !check(parser, TOKEN_SEMICOLON) &&
+           !check(parser, TOKEN_EOF) &&
+           !check(parser, TOKEN_EXECUTE)) {
+
+        ASTNode *statement = NULL;
+
+        if (check(parser, TOKEN_IF)) {
+            statement = parse_if(parser);
+        }
+        else if (check(parser, TOKEN_CONSTANT)) {
+            statement = parse_constant(parser);
+        }
+        else if (check(parser, TOKEN_LIST) ||
+                 check(parser, TOKEN_QUEUE) ||
+                 check(parser, TOKEN_STACK) ||
+                 check(parser, TOKEN_BRANCH)) {
+
+            statement =
+                parse_data_structure_operation(parser);
+        }
+        else if (check(parser, TOKEN_TERMINATE)) {
+            statement = parse_operation(parser);
+        }
+        else {
+            parser_error(
+                parser,
+                "unexpected statement inside branch"
+            );
+
+            ast_free(body);
+            return NULL;
+        }
+
+        if (statement == NULL) {
+            ast_free(body);
+            return NULL;
+        }
+
+        ast_add_child(
+            body,
+            statement
+        );
+
+        if (check(parser, TOKEN_SEMICOLON)) {
+            advance_parser(parser);
+        }
+    }
+
+    return body;
+}
+
 static ASTNode *parse_if(Parser *parser)
 {
     if (!expect(
@@ -779,7 +828,6 @@ static ASTNode *parse_if(Parser *parser)
         return NULL;
     }
 
-
     ASTNode *condition =
         parse_condition(parser);
 
@@ -793,7 +841,6 @@ static ASTNode *parse_if(Parser *parser)
         condition
     );
 
-
     if (!expect(
             parser,
             TOKEN_COMMA,
@@ -803,18 +850,17 @@ static ASTNode *parse_if(Parser *parser)
         return NULL;
     }
 
+    ASTNode *body =
+        parse_branch_body(parser);
 
-    ASTNode *operation =
-        parse_operation(parser);
-
-    if (operation == NULL) {
+    if (body == NULL) {
         ast_free(node);
         return NULL;
     }
 
     ast_add_child(
         node,
-        operation
+        body
     );
 
     return node;
@@ -822,7 +868,6 @@ static ASTNode *parse_if(Parser *parser)
 
 static ASTNode *parse_else_if(Parser *parser)
 {
-
     advance_parser(parser);
     advance_parser(parser);
 
@@ -835,7 +880,6 @@ static ASTNode *parse_else_if(Parser *parser)
         return NULL;
     }
 
-
     ASTNode *condition =
         parse_condition(parser);
 
@@ -849,7 +893,6 @@ static ASTNode *parse_else_if(Parser *parser)
         condition
     );
 
-
     if (!expect(
             parser,
             TOKEN_COMMA,
@@ -859,18 +902,17 @@ static ASTNode *parse_else_if(Parser *parser)
         return NULL;
     }
 
+    ASTNode *body =
+        parse_branch_body(parser);
 
-    ASTNode *operation =
-        parse_operation(parser);
-
-    if (operation == NULL) {
+    if (body == NULL) {
         ast_free(node);
         return NULL;
     }
 
     ast_add_child(
         node,
-        operation
+        body
     );
 
     return node;
@@ -889,18 +931,17 @@ static ASTNode *parse_else(Parser *parser)
         return NULL;
     }
 
+    ASTNode *body =
+        parse_branch_body(parser);
 
-    ASTNode *operation =
-        parse_operation(parser);
-
-    if (operation == NULL) {
+    if (body == NULL) {
         ast_free(node);
         return NULL;
     }
 
     ast_add_child(
         node,
-        operation
+        body
     );
 
     return node;
@@ -916,7 +957,6 @@ static ASTNode *parse_transition(Parser *parser)
         return NULL;
     }
 
-
     if (!expect(
             parser,
             TOKEN_LPAREN,
@@ -924,7 +964,6 @@ static ASTNode *parse_transition(Parser *parser)
 
         return NULL;
     }
-
 
     if (!check(parser, TOKEN_STRING) &&
         !check(parser, TOKEN_IDENTIFIER)) {
@@ -937,7 +976,6 @@ static ASTNode *parse_transition(Parser *parser)
         return NULL;
     }
 
-
     Token *transition =
         advance_parser(parser);
 
@@ -949,7 +987,6 @@ static ASTNode *parse_transition(Parser *parser)
     if (node == NULL) {
         return NULL;
     }
-
 
     if (!expect(
             parser,
@@ -982,7 +1019,6 @@ static ASTNode *parse_context(Parser *parser)
         return NULL;
     }
 
-
     ASTNode *expression =
         parse_condition(parser);
 
@@ -996,7 +1032,6 @@ static ASTNode *parse_context(Parser *parser)
         expression
     );
 
-
     if (!expect(
             parser,
             TOKEN_COMMA,
@@ -1005,7 +1040,6 @@ static ASTNode *parse_context(Parser *parser)
         ast_free(node);
         return NULL;
     }
-
 
     if (!expect(
             parser,
@@ -1016,7 +1050,6 @@ static ASTNode *parse_context(Parser *parser)
         return NULL;
     }
 
-
     if (!expect(
             parser,
             TOKEN_LPAREN,
@@ -1026,7 +1059,6 @@ static ASTNode *parse_context(Parser *parser)
         return NULL;
     }
 
-
     ASTNode *rule_expression =
         parse_condition(parser);
 
@@ -1034,7 +1066,6 @@ static ASTNode *parse_context(Parser *parser)
         ast_free(node);
         return NULL;
     }
-
 
     ASTNode *rule = ast_create(
         AST_RULE,
@@ -1056,7 +1087,6 @@ static ASTNode *parse_context(Parser *parser)
         node,
         rule
     );
-
 
     if (!expect(
             parser,
@@ -1102,7 +1132,6 @@ static ASTNode *parse_logic(Parser *parser)
         question
     );
 
-
     if (!expect(
             parser,
             TOKEN_SEMICOLON,
@@ -1130,7 +1159,6 @@ static ASTNode *parse_logic(Parser *parser)
                 if_node
             );
 
-
             while (check(parser, TOKEN_ELSE)) {
 
                 if (parser->current + 1 <
@@ -1152,7 +1180,6 @@ static ASTNode *parse_logic(Parser *parser)
                         else_if
                     );
                 }
-
                 else {
 
                     ASTNode *else_node =
@@ -1171,7 +1198,6 @@ static ASTNode *parse_logic(Parser *parser)
                     break;
                 }
             }
-
 
             if (check(parser, TOKEN_SEMICOLON)) {
                 advance_parser(parser);
@@ -1234,7 +1260,6 @@ static ASTNode *parse_logic(Parser *parser)
                 transition
             );
 
-
             if (check(parser, TOKEN_SEMICOLON)) {
                 advance_parser(parser);
             }
@@ -1256,7 +1281,6 @@ static ASTNode *parse_logic(Parser *parser)
                 logic,
                 context
             );
-
 
             if (check(parser, TOKEN_SEMICOLON)) {
                 advance_parser(parser);
@@ -1294,13 +1318,11 @@ ASTNode *parser_parse(TokenList *tokens)
         return NULL;
     }
 
-
     Parser parser = {
         .tokens = tokens,
         .current = 0,
         .had_error = 0
     };
-
 
     ASTNode *program = ast_create(
         AST_PROGRAM,
@@ -1310,7 +1332,6 @@ ASTNode *parser_parse(TokenList *tokens)
     if (program == NULL) {
         return NULL;
     }
-
 
     while (!check(&parser, TOKEN_EOF)) {
 
@@ -1368,7 +1389,6 @@ ASTNode *parser_parse(TokenList *tokens)
             continue;
         }
 
-
         parser_error(
             &parser,
             "expected 'register', 'logic', or 'execute'"
@@ -1376,7 +1396,6 @@ ASTNode *parser_parse(TokenList *tokens)
 
         advance_parser(&parser);
     }
-
 
     if (parser.had_error) {
         ast_free(program);
